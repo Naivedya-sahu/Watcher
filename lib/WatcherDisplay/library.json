@@ -1,7 +1,7 @@
 {
   "name": "WatcherDisplay",
-  "version": "1.0.0",
-  "description": "High-level display wrapper for Waveshare 4.2\" V2 E-Paper. Fixes partial refresh ghosting through automatic hybrid refresh strategy and provides simplified graphics API for UI development.",
+  "version": "1.1.0",
+  "description": "High-level display wrapper for Waveshare 4.2\" V2 E-Paper with automatic ghosting fix, custom TTF/OTF font support via integrated font generator, and advanced graphics API. Convert any font to bitmap for e-paper displays.",
   "keywords": [
     "display",
     "e-paper",
@@ -9,7 +9,13 @@
     "waveshare",
     "graphics",
     "ui",
-    "esp32"
+    "esp32",
+    "fonts",
+    "custom-fonts",
+    "ttf",
+    "otf",
+    "bitmap-fonts",
+    "font-generator"
   ],
   "authors": [
     {
@@ -32,7 +38,14 @@
   ],
   "export": {
     "include": [
-      "src/*"
+      "src/*",
+      "examples/*",
+      "*.md"
+    ],
+    "exclude": [
+      "tools/*.pyc",
+      "fonts/input/*",
+      "fonts/output/*"
     ]
   },
   "build": {
