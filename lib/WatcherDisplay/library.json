@@ -1,0 +1,46 @@
+{
+  "name": "WatcherDisplay",
+  "version": "1.0.0",
+  "description": "High-level display wrapper for Waveshare 4.2\" V2 E-Paper. Fixes partial refresh ghosting through automatic hybrid refresh strategy and provides simplified graphics API for UI development.",
+  "keywords": [
+    "display",
+    "e-paper",
+    "epd",
+    "waveshare",
+    "graphics",
+    "ui",
+    "esp32"
+  ],
+  "authors": [
+    {
+      "name": "The Watcher Project",
+      "maintainer": true
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "license": "MIT",
+  "frameworks": "arduino",
+  "platforms": "espressif32",
+  "dependencies": [
+    {
+      "name": "waveshare-epd",
+      "version": "*"
+    }
+  ],
+  "export": {
+    "include": [
+      "src/*"
+    ]
+  },
+  "build": {
+    "srcFilter": [
+      "+<src/>",
+      "+<src/*.cpp>",
+      "+<src/*.h>"
+    ],
+    "flags": "-std=c++11"
+  }
+}

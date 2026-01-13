@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(dir:*)",
+      "Bash(~/.platformio/penv/Scripts/platformio.exe run -e pomodoro)",
+      "Bash(~/.platformio/penv/Scripts/platformio.exe run -e timer-test)",
+      "Bash(python tools/convert_digits.py:*)",
+      "Bash(pip install:*)",
+      "Bash(platformio run:*)",
+      "Bash(pio run:*)",
+      "Bash(tree:*)",
+      "Bash(du:*)",
+      "Bash(file:*)",
+      "Bash(robocopy:*)",
+      "Bash(where platformio:*)",
+      "Bash(where pio:*)",
+      "Bash(findstr:*)",
+      "Bash(wc:*)",
+      "Bash(if exist NEW_FEATURES_QUICK_START.md del NEW_FEATURES_QUICK_START.md)",
+      "Bash(if exist IMPLEMENTATION_SUMMARY.md del IMPLEMENTATION_SUMMARY.md)",
+      "Bash(if exist WAVESHARE_ENHANCED.md del WAVESHARE_ENHANCED.md)",
+      "Bash(if exist srcgxepd_wrapper_test.cpp del srcgxepd_wrapper_test.cpp)",
+      "Bash(python -m platformio run:*)"
+    ]
+  }
+}

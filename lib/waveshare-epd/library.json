@@ -1,0 +1,21 @@
+{
+  "name": "waveshare-epd",
+  "version": "1.0.0",
+  "description": "Waveshare e-Paper display library for ESP32",
+  "keywords": ["display", "epaper", "e-paper", "eink", "waveshare", "esp32"],
+  "authors": [
+    {
+      "name": "Waveshare",
+      "url": "http://www.waveshare.net"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/waveshare/e-Paper"
+  },
+  "frameworks": ["arduino"],
+  "platforms": ["espressif32"],
+  "export": {
+    "include": ["src/*"]
+  }
+}
