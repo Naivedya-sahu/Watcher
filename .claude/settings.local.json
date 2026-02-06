@@ -21,7 +21,8 @@
       "Bash(if exist IMPLEMENTATION_SUMMARY.md del IMPLEMENTATION_SUMMARY.md)",
       "Bash(if exist WAVESHARE_ENHANCED.md del WAVESHARE_ENHANCED.md)",
       "Bash(if exist srcgxepd_wrapper_test.cpp del srcgxepd_wrapper_test.cpp)",
-      "Bash(python -m platformio run:*)"
+      "Bash(python -m platformio run:*)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
