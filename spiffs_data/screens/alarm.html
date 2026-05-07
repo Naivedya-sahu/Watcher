@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<!-- Watcher v7.1 — Alarm Screen (pixel-perfect, matches screens.jsx AlarmScreen)
+     400×300. Header:28px, list area:272px, row height:36px (up to 7 visible).
+     Max 8 alarms. Focused row = black bg + white text + ▶ cursor.
+     Checkbox-style: solid 12×12 square = ON, outlined = OFF.
+
+     Grid: cursor(14px) | time(56px) | label(1fr) | days(76px) | onoff(18px)
+     Gap: 10px. Padding: 0 14px.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Watcher · Alarms</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { width:400px; height:300px; background:#fff; overflow:hidden;
+       font-family:'Share Tech Mono','Courier New',monospace; }
+
+.header { display:flex; justify-content:space-between; align-items:center;
+          height:28px; padding:0 14px; border-bottom:1px solid #000; }
+.hdr-title { font-size:11px; letter-spacing:0.18em; font-weight:700; }
+.hdr-count { font-size:9px;  letter-spacing:0.18em; opacity:0.55; }
+
+/* Scrollable list area: 272px. Scrollbar hidden. */
+.list { height:272px; overflow-y:auto; scrollbar-width:none; }
+.list::-webkit-scrollbar { display:none; }
+
+.row { display:grid;
+       grid-template-columns:14px 56px 1fr 76px 18px;
+       column-gap:10px; align-items:center;
+       height:36px; padding:0 14px;
+       border-bottom:1px solid #E6E6E6;
+       box-sizing:border-box; }
+.row.focused { background:#000; color:#fff; }
+
+.cur  { font-size:11px; }
+.time { font-size:17px; letter-spacing:0.04em; }
+.lbl  { font-size:10px; letter-spacing:0.16em; opacity:0.75;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.row.focused .lbl { opacity:0.9; }
+.days { font-size:8px; letter-spacing:0.18em; opacity:0.5; }
+.row.focused .days { opacity:0.7; }
+
+/* ON/OFF indicator: 12×12 box. Solid=ON, outlined=OFF */
+.ind { width:12px; height:12px; box-sizing:border-box;
+       justify-self:end; }
+.ind.on  { background:#000; }
+.ind.off { border:1.5px solid #000; background:transparent; }
+.row.focused .ind.on  { background:#fff; }
+.row.focused .ind.off { border-color:#fff; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="hdr-title">ALARMS</span>
+  <span class="hdr-count" id="hdr-count">6 / 8 ACTIVE</span>
+</div>
+
+<div class="list" id="alarm-list"></div>
+
+<script>
+// Alarm data — matches screens.jsx AlarmScreen exactly
+const ALARMS = [
+  { time:'06:30', label:'wake',      on:true,  days:'M T W T F · ·' },
+  { time:'07:45', label:'leave',     on:true,  days:'M T W T F · ·' },
+  { time:'09:00', label:'standup',   on:true,  days:'M T W T F · ·' },
+  { time:'13:30', label:'lunch',     on:false, days:'· · · · · · ·' },
+  { time:'17:00', label:'shutdown',  on:true,  days:'M T W T F · ·' },
+  { time:'19:15', label:'workout',   on:true,  days:'· · W · · · ·' },
+  { time:'21:00', label:'medicine',  on:true,  days:'M T W T F S S' },
+  { time:'22:30', label:'wind down', on:false, days:'M T W T F S S' },
+].sort((a,b) => a.time.localeCompare(b.time));
+
+let focus = 4;  // shutdown is default focused row (matches screens.jsx)
+const LIST_H = 272, ROW_H = 36;
+const listEl = document.getElementById('alarm-list');
+const hdrCount = document.getElementById('hdr-count');
+
+function render() {
+  listEl.innerHTML = '';
+  let active = 0;
+  ALARMS.forEach((a,i) => {
+    if(a.on) active++;
+    const row = document.createElement('div');
+    row.className = 'row' + (i===focus?' focused':'');
+    row.dataset.idx = i;
+    row.innerHTML = `
+      <span class="cur">${i===focus?'▶':' '}</span>
+      <span class="time">${a.time}</span>
+      <span class="lbl">${a.label.toUpperCase()}</span>
+      <span class="days">${a.days}</span>
+      <div class="ind ${a.on?'on':'off'}"></div>
+    `;
+    row.onclick = () => { focus=i; render(); };
+    listEl.appendChild(row);
+  });
+  hdrCount.textContent = active+' / '+ALARMS.length+' ACTIVE';
+  // Auto-scroll focused row into view
+  const rowTop = focus*ROW_H;
+  if(rowTop < listEl.scrollTop) listEl.scrollTop = rowTop;
+  else if(rowTop+ROW_H > listEl.scrollTop+LIST_H) listEl.scrollTop = rowTop+ROW_H-LIST_H;
+}
+render();
+
+// Keyboard nav
+document.addEventListener('keydown', e => {
+  if(e.key==='ArrowDown') { focus=Math.min(focus+1,ALARMS.length-1); render(); }
+  if(e.key==='ArrowUp')   { focus=Math.max(focus-1,0);               render(); }
+  if(e.key===' ')         { ALARMS[focus].on=!ALARMS[focus].on;      render(); }
+});
+</script>
+
+<!-- Device render commands -->
+<script type="text/watcher-render">
+clear
+text x=18 y=14 sc=1 c=0 align=l ALARMS
+hline x=18 y=26 w=364 c=0
+text x=200 y=150 sc=1 c=0 align=c [alarm list rendered by alarm_screen.cpp]
+</script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<!-- Watcher v7.1 — Calendar Screen (pixel-perfect, matches screens.jsx CalendarScreen)
+     400×300. Header:30px, day-strip:16px, grid:254px.
+     7 columns. Row height = floor(254 / rows). cells include today highlight + event dot.
+     Cell borders: 1px #E6E6E6 right+bottom. No right border on col 7.
+     Today: background:#000, color:#fff, fontWeight:700.
+     Event dot: 8×2px at bottom-center. White on today, black on normal.
+     Other-month cells: opacity:0.2.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Watcher · Calendar</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { width:400px; height:300px; background:#fff; overflow:hidden;
+       font-family:'Share Tech Mono','Courier New',monospace; }
+
+.header { display:flex; justify-content:space-between; align-items:center;
+          height:30px; padding:0 14px; border-bottom:1px solid #000; }
+.nav    { font-size:16px; cursor:pointer; padding:0 6px; user-select:none; line-height:1; }
+.title  { font-size:11px; letter-spacing:0.20em; font-weight:700; }
+
+.day-strip { display:grid; grid-template-columns:repeat(7,1fr);
+             height:16px; border-bottom:1px solid #000; text-align:center; }
+.day-strip span { font-size:8px; letter-spacing:0.14em; opacity:0.6; line-height:16px; }
+
+/* Grid dynamically sized by JS */
+#grid { display:grid; grid-template-columns:repeat(7,1fr); }
+
+.cell { position:relative; display:flex; align-items:center; justify-content:center;
+        font-size:12px;
+        border-right:1px solid #E6E6E6;
+        border-bottom:1px solid #E6E6E6; }
+.cell:nth-child(7n) { border-right:none; }
+.cell.other { opacity:0.2; }
+.cell.today { background:#000; color:#fff; font-weight:700; }
+/* Event dot */
+.cell.event::after { content:''; position:absolute; bottom:3px; left:50%;
+                     transform:translateX(-50%); width:8px; height:2px;
+                     background:#000; }
+.cell.today.event::after { background:#fff; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="nav" id="prev">‹</span>
+  <span class="title" id="cal-title"></span>
+  <span class="nav" id="next">›</span>
+</div>
+
+<div class="day-strip">
+  <span>SUN</span><span>MON</span><span>TUE</span>
+  <span>WED</span><span>THU</span><span>FRI</span><span>SAT</span>
+</div>
+
+<div id="grid"></div>
+
+<script>
+const MONTHS_U = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE',
+                  'JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+// Sample event days (day-of-month). Future: from NVS/API.
+const EVENTS = [3,7,12,19,22,28];
+
+let year=2026, month=4; // May 2026
+
+function renderCal() {
+  const todayD = new Date();
+  const isToday = d => d===todayD.getDate() && month===todayD.getMonth() && year===todayD.getFullYear();
+
+  document.getElementById('cal-title').textContent = MONTHS_U[month]+' '+year;
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  const first = new Date(year,month,1).getDay();   // 0=Sun
+  const days  = new Date(year,month+1,0).getDate();
+  const prev  = new Date(year,month,0).getDate();
+  const rows  = Math.ceil((first+days)/7);
+  const cellH = Math.floor(254/rows);
+
+  grid.style.gridTemplateRows = `repeat(${rows},${cellH}px)`;
+  grid.style.height = (rows*cellH)+'px';
+
+  // Leading cells from previous month
+  for(let i=0;i<first;i++) {
+    const c=document.createElement('div');
+    c.className='cell other'; c.textContent=prev-first+1+i; grid.appendChild(c);
+  }
+  // Current month
+  for(let d=1;d<=days;d++) {
+    const c=document.createElement('div');
+    let cls='cell';
+    if(isToday(d))        cls+=' today';
+    if(EVENTS.includes(d)) cls+=' event';
+    c.className=cls; c.textContent=d; grid.appendChild(c);
+  }
+  // Trailing cells
+  const trail=(7-((first+days)%7))%7;
+  for(let i=1;i<=trail;i++) {
+    const c=document.createElement('div');
+    c.className='cell other'; c.textContent=i; grid.appendChild(c);
+  }
+}
+
+document.getElementById('prev').onclick = () => { if(--month<0){month=11;year--;} renderCal(); };
+document.getElementById('next').onclick = () => { if(++month>11){month=0;year++;} renderCal(); };
+renderCal();
+</script>
+
+<!-- Device render commands -->
+<script type="text/watcher-render">
+clear
+text x=200 y=14 sc=1 c=0 align=c {{cal_month}} {{cal_year}}
+hline x=14 y=30 w=372 c=0
+text x=200 y=150 sc=1 c=0 align=c [calendar rendered by cal_screen.cpp]
+</script>
+</body>
+</html>

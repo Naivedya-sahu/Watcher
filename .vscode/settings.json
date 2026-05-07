@@ -1,0 +1,18 @@
+{
+  "idf.currentSetup": "C:\\esp\\v6.0\\esp-idf",
+  "idf.portWin": "COM3",
+  "idf.flashType": "UART",
+  "idf.openOcdConfigs": [
+    "interface/ftdi/esp_ftdi.cfg",
+    "target/esp32s3.cfg"
+  ],
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32s3"
+  },
+  "clangd.path": "C:\\Users\\NAVY\\.espressif\\tools\\esp-clang\\esp-19.1.2_20250312\\esp-clang\\bin\\clangd.exe",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=d:\\Development\\Personal\\Watcher\\v7.1\\build"
+  ]
+}

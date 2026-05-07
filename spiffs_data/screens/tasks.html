@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<!-- Watcher v7.1 — Tasks Screen (pixel-perfect, matches screens.jsx TasksScreen)
+     400×300. Header:28px, rows up to 7 visible at 32px each.
+     Grid: checkbox(auto) | text(1fr) | tag(auto). Gap:10px. Padding:0 14px.
+     Checkbox: 11×11, border 1.5px. Filled+checkmark when done.
+     Text: font-size:11px, line-height:1.35. Strikethrough+opacity:0.35 when done.
+     Tag: font-size:7px, border:1px, padding:1px 5px, opacity:0.65.
+     Row separator: 1px #E6E6E6 bottom. Last row: no border.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Watcher · Tasks</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { width:400px; height:300px; background:#fff; overflow:hidden;
+       font-family:'Share Tech Mono','Courier New',monospace; }
+
+.header { display:flex; justify-content:space-between; align-items:center;
+          height:28px; padding:0 14px; border-bottom:1px solid #000; }
+.hdr-t { font-size:11px; letter-spacing:0.18em; font-weight:700; }
+.hdr-s { font-size:9px;  letter-spacing:0.18em; opacity:0.55; }
+
+.list { padding:2px 14px; overflow:hidden; }
+
+.row { display:grid; grid-template-columns:auto 1fr auto;
+       column-gap:10px; align-items:center;
+       padding:5px 0; border-bottom:1px solid #E6E6E6; }
+.row:last-child { border-bottom:none; }
+
+/* 11×11 checkbox */
+.cb { width:11px; height:11px; border:1.5px solid #000;
+      flex-shrink:0; position:relative; cursor:pointer; }
+.cb.done { background:#000; }
+/* Checkmark SVG injected via pseudo-element workaround (::after not ideal, use JS) */
+
+.txt { font-size:11px; line-height:1.35; cursor:pointer; }
+.txt.done { text-decoration:line-through; opacity:0.35; }
+
+.tag { font-size:7px; letter-spacing:0.14em; border:1px solid #000;
+       padding:1px 5px; opacity:0.65; white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span class="hdr-t">TASKS</span>
+  <span class="hdr-s" id="hdr-s">OBSIDIAN · 5 OPEN</span>
+</div>
+
+<div class="list" id="task-list"></div>
+
+<script>
+// Task data — matches screens.jsx TasksScreen exactly
+const tasks = [
+  { text:'finalize firmware v0.4 release notes', done:false, tag:'WORK' },
+  { text:'reply to PCB fab quote',               done:false, tag:'WORK' },
+  { text:'order replacement screen',             done:true,  tag:'HW'   },
+  { text:'pick up groceries on the way home',    done:false, tag:'HOME' },
+  { text:'review obsidian inbox',                done:false, tag:null   },
+  { text:'pay electric bill',                    done:true,  tag:'BILL' },
+  { text:'read chapter 4',                       done:false, tag:'READ' },
+];
+
+const CHECK_SVG = `<svg viewBox="0 0 11 11" width="11" height="11" style="position:absolute;inset:-1.5px">
+  <polyline points="2,6 5,8 9,3" fill="none" stroke="#fff" stroke-width="1.5"/>
+</svg>`;
+
+function render() {
+  const list = document.getElementById('task-list');
+  list.innerHTML = '';
+  let open = 0;
+  tasks.forEach((t,i) => {
+    if(!t.done) open++;
+    const row = document.createElement('div');
+    row.className = 'row';
+
+    // Checkbox
+    const cb = document.createElement('div');
+    cb.className = 'cb' + (t.done?' done':'');
+    if(t.done) cb.innerHTML = CHECK_SVG;
+    cb.onclick = () => { t.done=!t.done; render(); };
+
+    // Text
+    const txt = document.createElement('div');
+    txt.className = 'txt' + (t.done?' done':'');
+    txt.textContent = t.text;
+    txt.onclick = cb.onclick;
+
+    row.appendChild(cb); row.appendChild(txt);
+
+    if(t.tag) {
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.textContent = t.tag;
+      row.appendChild(tag);
+    } else {
+      row.appendChild(document.createElement('span')); // placeholder for grid
+    }
+    list.appendChild(row);
+  });
+  document.getElementById('hdr-s').textContent = 'OBSIDIAN · '+open+' OPEN';
+}
+render();
+</script>
+
+<!-- Device render commands -->
+<script type="text/watcher-render">
+clear
+text x=18 y=14 sc=1 c=0 align=l TASKS
+hline x=18 y=26 w=364 c=0
+text x=200 y=150 sc=1 c=0 align=c [tasks rendered by tasks_screen.cpp]
+</script>
+</body>
+</html>

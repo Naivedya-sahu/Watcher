@@ -1,0 +1,159 @@
+// cal_screen.cpp — Full-bleed month calendar grid
+// Geometry from EpdCanvas CalendarScreen (React source verified):
+//   Header: 30px, Day-strip: 14px, Grid: 256px (400×300 full bleed)
+
+#include "cal_screen.h"
+#include "screen_mgr.h"
+#include "fb.h"
+#include "time_svc.h"
+#include "esp_log.h"
+#include <string.h>
+#include <stdio.h>
+#include <time.h>
+
+// ── State ─────────────────────────────────────────────────────
+static int s_year  = 2026;
+static int s_month = 3;    // 0-based
+
+static const char *MONTH_NAMES[] = {
+    "JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE",
+    "JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"
+};
+static const char *WDAY3[] = { "SUN","MON","TUE","WED","THU","FRI","SAT" };
+
+// ── Layout ────────────────────────────────────────────────────
+#define HDR_H   30    // header height
+#define STRIP_H 14    // day-name strip height
+#define GRID_H  256   // remaining for grid
+#define COL_W   57    // 400/7 ≈ 57 (last col gets remainder)
+
+// ── Render ────────────────────────────────────────────────────
+static void cal_render(fb_t *fb) {
+    // ── Header ──────────────────────────────────────────────
+    char hdr[32];
+    snprintf(hdr, sizeof(hdr), "%s %d", MONTH_NAMES[s_month], s_year);
+    fb_draw_str_centered(fb, 200, 10, hdr, FB_BLACK);
+    fb_draw_hline(fb, 0, HDR_H, 400, FB_BLACK);
+
+    // ── Day-name strip ───────────────────────────────────────
+    for (int d = 0; d < 7; d++) {
+        int cx = d * COL_W + COL_W / 2;
+        fb_draw_str_centered(fb, cx, HDR_H + 3, WDAY3[d], FB_BLACK);
+    }
+    fb_draw_hline(fb, 0, HDR_H + STRIP_H, 400, FB_BLACK);
+
+    // ── Calendar grid ─────────────────────────────────────────
+    // First day of month (weekday)
+    struct tm tm_first;
+    memset(&tm_first, 0, sizeof(tm_first));
+    tm_first.tm_year = s_year - 1900;
+    tm_first.tm_mon  = s_month;
+    tm_first.tm_mday = 1;
+    mktime(&tm_first);
+    int first_wday = tm_first.tm_wday;  // 0=Sun
+
+    // Days in month
+    struct tm tm_next;
+    memset(&tm_next, 0, sizeof(tm_next));
+    tm_next.tm_year = s_year - 1900;
+    tm_next.tm_mon  = s_month + 1;
+    tm_next.tm_mday = 0;
+    mktime(&tm_next);
+    int days_in_month = tm_next.tm_mday;
+
+    // Today (for highlight)
+    int today_day = 0, today_month = -1, today_year = 0;
+    if (time_svc_is_synced()) {
+        time_t now = time_svc_get();
+        struct tm tnow; localtime_r(&now, &tnow);
+        today_day   = tnow.tm_mday;
+        today_month = tnow.tm_mon;
+        today_year  = 1900 + tnow.tm_year;
+    }
+
+    // Build cell array (prev month tail + this month + next month head)
+    int total_cells = first_wday + days_in_month;
+    int rows = (total_cells + 6) / 7;
+    int cell_h = GRID_H / rows;
+
+    int grid_top = HDR_H + STRIP_H;
+    int cell_num = 1 - first_wday;  // starts negative for prev-month cells
+
+    for (int row = 0; row < rows; row++) {
+        for (int col = 0; col < 7; col++) {
+            int cx = col * COL_W;
+            int cy = grid_top + row * cell_h;
+            int cw = (col == 6) ? (400 - cx) : COL_W;
+
+            // Cell border
+            fb_draw_rect(fb, cx, cy, cw, cell_h, FB_BLACK);
+
+            int n = cell_num++;
+            bool this_month = (n >= 1 && n <= days_in_month);
+            bool is_today   = this_month && n == today_day
+                              && s_month == today_month
+                              && s_year  == today_year;
+
+            // Today: filled cell
+            if (is_today) {
+                fb_fill_rect(fb, cx + 1, cy + 1, cw - 2, cell_h - 2, FB_BLACK);
+            }
+
+            // Day number
+            char num[24];
+            int display_n = n;
+            if (!this_month) {
+                // Trailing/leading day from adjacent month — skip rendering for clean look
+                continue;
+            }
+            snprintf(num, sizeof(num), "%d", display_n);
+            int tx = cx + cw/2 - (strlen(num) * 6) / 2;
+            int ty = cy + cell_h/2 - 4;
+            fb_draw_str(fb, tx, ty, num, is_today ? FB_WHITE : FB_BLACK);
+        }
+    }
+}
+
+// ── Buttons ───────────────────────────────────────────────────
+static void advance_month(int delta) {
+    s_month += delta;
+    if (s_month < 0)  { s_month = 11; s_year--; }
+    if (s_month > 11) { s_month = 0;  s_year++; }
+    screen_force_full();
+    screen_force_render();
+}
+
+static void cal_btn(btn_id_t id, btn_evt_t evt) {
+    if (id == BTN_1 && evt == BTN_SHORT) { advance_month(-1); return; }
+    if (id == BTN_2 && evt == BTN_SHORT) { advance_month(+1); return; }
+    if (id == BTN_3 && evt == BTN_SHORT) { screen_goto("tasks"); return; }
+}
+
+static void cal_enc(int delta) { advance_month(delta); }
+static void cal_enc_click(void) { screen_goto("tasks"); }
+
+static void cal_enter(void) {
+    // Snap to current month on entry
+    if (time_svc_is_synced()) {
+        time_t now = time_svc_get();
+        struct tm t; localtime_r(&now, &t);
+        s_year  = 1900 + t.tm_year;
+        s_month = t.tm_mon;
+    }
+    screen_force_render();
+}
+
+screen_def_t cal_screen = {
+    .id           = "cal",
+    .label        = "CALENDAR",
+    .group        = "work",
+    .enter        = cal_enter,
+    .exit         = NULL,
+    .tick         = NULL,
+    .render       = cal_render,
+    .on_button    = cal_btn,
+    .on_encoder   = cal_enc,
+    .on_enc_click = cal_enc_click,
+    .needs_render = true,
+    .force_full   = true,
+};

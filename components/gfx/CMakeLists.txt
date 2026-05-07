@@ -1,0 +1,9 @@
+idf_component_register(
+    SRCS
+        "gfx_primitives.c"
+        "gfx_7seg.c"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        fb
+)

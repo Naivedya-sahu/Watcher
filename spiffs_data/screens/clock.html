@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<!-- Watcher v7.1 — Clock Screen (pixel-perfect, matches screens.jsx DigitalClockScreen)
+     400×300 e-paper. 7-seg digits + 60-square perimeter ring + date string.
+
+     DAY_RING geometry (from screens.jsx):
+       SQ=10px, PX=22, PY=21, COLS=18, ROWS=14
+       x0=8, y0=9  (centered on 400×300)
+       60 squares total, clockwise from top-left.
+       Ring shows % of day elapsed (filled = floor(pct * 60)).
+
+     7-seg digits (from screens.jsx SvgDigit, native 62×110):
+       Digit height tweakable (default 116px). Width = h*(62/110).
+       Gap between elements: 8px.
+       Total width = 4*digitW + colonW + 4*gap  → startX = 200 - totalW/2.
+       startY = round(150 - digitH/2 - 10).
+
+     Date string: bottom of clock area + dateShift (default 30px below digits).
+
+     Template vars: {{h1}}..{{m2}}, {{colon_on}}, {{h1_nonzero}},
+       {{weekday}}, {{mday}}, {{ordinal}}, {{month}}, {{year}}, {{ntp_synced}}.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Watcher · Clock</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { width:400px; height:300px; background:#fff; overflow:hidden;
+       font-family:'Share Tech Mono','Courier New',monospace; position:relative; }
+#ring { position:absolute; top:0; left:0; pointer-events:none; }
+#clock-row { position:absolute; display:flex; align-items:center; }
+.date-str { position:absolute; left:0; right:0; text-align:center;
+            font-size:13px; letter-spacing:0.04em; color:#000; }
+</style>
+</head>
+<body>
+
+<!-- Perimeter ring: 60 squares, filled = % of day -->
+<svg id="ring" viewBox="0 0 400 300" width="400" height="300"></svg>
+
+<!-- 7-seg time row, absolutely positioned by JS -->
+<div id="clock-row"></div>
+
+<!-- Date string, y positioned by JS -->
+<div class="date-str" id="date-str"></div>
+
+<!-- Device render commands (browser skips unknown script type) -->
+<script type="text/watcher-render">
+clear
+{{#if ntp_synced}}
+dot_ring filled={{dot_filled}} on=0 off=1
+{{#if h1_nonzero}}
+7seg x=61 y=85 v={{h1}} on=0 off=1
+{{/if}}
+7seg x=126 y=85 v={{h2}} on=0 off=1
+colon x=191 y=85 vis={{colon_on}} c=0
+7seg x=212 y=85 v={{m1}} on=0 off=1
+7seg x=277 y=85 v={{m2}} on=0 off=1
+text x=200 y=220 sc=1 c=0 align=c {{weekday}}, {{mday}}{{ordinal}} {{month}}. {{year}}
+{{else}}
+text x=200 y=130 sc=1 c=0 align=c --:--
+text x=200 y=148 sc=1 c=0 align=c Waiting for NTP...
+{{/if}}
+</script>
+
+<script>
+// ── DAY_RING: exact geometry from screens.jsx ────────────────
+// SQ=10, PX=22, PY=21, COLS=18, ROWS=14
+// x0=8, y0=9. 60 squares clockwise.
+const SQ=10, PX=22, PY=21, COLS=18, ROWS=14;
+const x0=8, y0=9;
+const RING_POS = [];
+for(let i=0;i<COLS;i++)      RING_POS.push([x0+i*PX, y0]);               // top L→R
+for(let i=1;i<ROWS;i++)      RING_POS.push([x0+(COLS-1)*PX, y0+i*PY]);  // right T→B
+for(let i=COLS-2;i>=0;i--)   RING_POS.push([x0+i*PX, y0+(ROWS-1)*PY]); // bottom R→L
+for(let i=ROWS-2;i>=1;i--)   RING_POS.push([x0, y0+i*PY]);              // left B→T
+// 60 total: 18 + 13 + 17 + 12
+
+// ── SVG digit segment shapes (62×110 native, from screens.jsx SvgDigit) ──
+// Chamfered parallelogram paths matching the reference design
+const SEG_PATHS = [
+  "M14,0 L48,0 L54,4.5 L48,9 L14,9 L8,4.5 Z",          // top (sh)
+  "M4.5,14 L0,18.5 L0,45 L4.5,50 L9,45 L9,18.5 Z",     // tl  (sv)
+  "M57.5,14 L53,18.5 L53,45 L57.5,50 L62,45 L62,18.5 Z",// tr  (sv)
+  "M14,50 L48,50 L54,54.5 L48,59 L14,59 L8,54.5 Z",     // mid (sh)
+  "M4.5,65 L0,69.5 L0,96 L4.5,101 L9,96 L9,69.5 Z",    // bl  (sv)
+  "M57.5,65 L53,69.5 L53,96 L57.5,101 L62,96 L62,69.5 Z",// br  (sv)
+  "M14,101 L48,101 L54,105.5 L48,110 L14,110 L8,105.5 Z" // bot (sh)
+];
+const SEG_MAP = {
+  '0':[1,1,1,0,1,1,1],'1':[0,0,1,0,0,1,0],'2':[1,0,1,1,1,0,1],
+  '3':[1,0,1,1,0,1,1],'4':[0,1,1,1,0,1,0],'5':[1,1,0,1,0,1,1],
+  '6':[1,1,0,1,1,1,1],'7':[1,0,1,0,0,1,0],'8':[1,1,1,1,1,1,1],'9':[1,1,1,1,0,1,1]
+};
+const ON='#111', OFF='#E6E6E6';
+
+// Build SVG ring dots
+const svg = document.getElementById('ring');
+const dots = RING_POS.map(([x,y]) => {
+  const r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  r.setAttribute('x',x); r.setAttribute('y',y);
+  r.setAttribute('width',SQ); r.setAttribute('height',SQ);
+  r.setAttribute('fill',OFF);
+  svg.appendChild(r); return r;
+});
+
+// Build SVG digit element (returns <svg> element)
+function makeSvgDigit(ch, h) {
+  const w = 62*(h/110);
+  const el = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  el.setAttribute('width', w); el.setAttribute('height', h);
+  el.setAttribute('viewBox','0 0 62 110');
+  el.style.display = 'block'; el.style.flexShrink = '0';
+  const segs = SEG_MAP[ch] || [0,0,0,0,0,0,0];
+  SEG_PATHS.forEach((d,i) => {
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d', d);
+    p.setAttribute('fill', segs[i] ? ON : OFF);
+    el.appendChild(p);
+  });
+  return el;
+}
+
+// Build SVG colon element
+function makeSvgColon(visible, h) {
+  const w = 18*(h/110);
+  const el = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  el.setAttribute('width', w); el.setAttribute('height', h);
+  el.setAttribute('viewBox','0 0 18 110');
+  el.style.display = 'block'; el.style.flexShrink = '0';
+  if (visible) {
+    [[4.5,40],[4.5,65]].forEach(([x,y]) => {
+      const r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+      r.setAttribute('x',x); r.setAttribute('y',y);
+      r.setAttribute('width',9); r.setAttribute('height',9);
+      r.setAttribute('fill',ON);
+      el.appendChild(r);
+    });
+  }
+  return el;
+}
+
+// Layout constants (default tweaks from screens.jsx app.jsx: digitH=116, dateShift=30)
+const DIGIT_H = 116;
+const DATE_SHIFT = 30;
+const GAP = 8;
+const digitW = 62*(DIGIT_H/110);
+const colonW = 18*(DIGIT_H/110);
+
+// Build clock row container
+const row = document.getElementById('clock-row');
+const totalW = digitW*4 + colonW + GAP*4;
+const startX = Math.round(200 - totalW/2);
+const startY = Math.round(150 - DIGIT_H/2 - 10);
+row.style.left   = startX+'px';
+row.style.top    = startY+'px';
+row.style.gap    = GAP+'px';
+// Digit placeholders (updated by tick)
+const digEls = ['h1','h2','col','m1','m2'].map(() => {
+  const d = document.createElement('div');
+  row.appendChild(d);
+  return d;
+});
+
+// Date string positioning
+const dateEl = document.getElementById('date-str');
+dateEl.style.top = (startY + DIGIT_H + DATE_SHIFT) + 'px';
+
+// Helpers
+const WDAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const ORD = n => n+(n%10===1&&n!==11?'st':n%10===2&&n!==12?'nd':n%10===3&&n!==13?'rd':'th');
+
+function tick() {
+  const n = new Date();
+  const h = String(n.getHours()).padStart(2,'0');
+  const m = String(n.getMinutes()).padStart(2,'0');
+  const s = n.getSeconds();
+
+  // Ring: % of day filled (60 squares)
+  const pct = (n.getHours()*3600 + n.getMinutes()*60 + s) / 86400;
+  const filled = Math.floor(pct * 60);
+  dots.forEach((r,i) => r.setAttribute('fill', i<filled ? ON : OFF));
+
+  // Digits
+  if (h[0] === '0') {
+    digEls[0].innerHTML = '';
+    digEls[0].style.width = digitW+'px';
+    digEls[0].style.height = DIGIT_H+'px';
+    digEls[0].style.display = 'block';
+  } else {
+    digEls[0].innerHTML = '';
+    digEls[0].appendChild(makeSvgDigit(h[0], DIGIT_H));
+  }
+  digEls[1].innerHTML = ''; digEls[1].appendChild(makeSvgDigit(h[1], DIGIT_H));
+  digEls[2].innerHTML = ''; digEls[2].appendChild(makeSvgColon(s%2===0, DIGIT_H));
+  digEls[3].innerHTML = ''; digEls[3].appendChild(makeSvgDigit(m[0], DIGIT_H));
+  digEls[4].innerHTML = ''; digEls[4].appendChild(makeSvgDigit(m[1], DIGIT_H));
+
+  // Date
+  const d = n.getDate();
+  dateEl.textContent = WDAYS[n.getDay()]+', '+ORD(d)+' '+MONTHS[n.getMonth()]+'. '+n.getFullYear();
+}
+setInterval(tick, 1000); tick();
+</script>
+</body>
+</html>
