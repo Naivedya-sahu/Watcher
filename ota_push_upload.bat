@@ -6,7 +6,7 @@ setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
 set "TARGET=%~1"
-if "%TARGET%"=="" set "TARGET=192.168.1.5"
+if "%TARGET%"=="" set "TARGET=192.168.1.7"
 
 if not exist "build\watcher.bin" (
     echo ERROR: build\watcher.bin not found

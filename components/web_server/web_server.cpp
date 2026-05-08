@@ -176,7 +176,7 @@ static esp_err_t send_err(httpd_req_t *req, const char *msg) {
     return send_json(req, buf);
 }
 
-// ── GET / — serve live mirror/control page from SPIFFS ───────
+// ── GET / — serve the main browser console from SPIFFS ───────
 static esp_err_t handle_root(httpd_req_t *req) {
     FILE *f = fopen("/spiffs/www/index.html", "r");
     if (!f) {
@@ -297,11 +297,11 @@ static esp_err_t handle_bitmap(httpd_req_t *req) {
     return httpd_resp_send(req, (char *)s_fb->buf, FB_BYTES);
 }
 
-// ── GET /designer — serve designer push-tool from SPIFFS ─────
+// ── GET /designer — serve the dedicated designer tool from SPIFFS ─────
 static esp_err_t handle_designer(httpd_req_t *req) {
-    FILE *f = fopen("/spiffs/www/index.html", "r");
+    FILE *f = fopen("/spiffs/www/designer.html", "r");
     if (!f) {
-        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "index.html not found — upload SPIFFS image");
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "designer.html not found — upload SPIFFS image");
         return ESP_OK;
     }
     httpd_resp_set_type(req, "text/html; charset=utf-8");
@@ -526,7 +526,7 @@ void web_server_start(fb_t *fb) {
     ROUTE(HTTP_GET,  "/screens/?*",      handle_screen_file,  false);  // wildcard last
 #undef ROUTE
 
-    ESP_LOGI(TAG, "HTTP started — serving on :80 | /designer for push tool");
+    ESP_LOGI(TAG, "HTTP started — serving index on :80 | /designer for designer tool");
 }
 
 void web_server_stop(void) {

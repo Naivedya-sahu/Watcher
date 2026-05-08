@@ -77,22 +77,25 @@ document.addEventListener('DOMContentLoaded', async function() {
     var style = document.createElement('style');
     style.id = '__designer_controls_style';
     style.textContent =
-      '#__designer_controls{position:fixed;top:10px;right:10px;z-index:2147483647;display:flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid #000;background:#fff;color:#000;font:11px/1.2 "Share Tech Mono","Courier New",monospace;}' +
-      '#__designer_controls select,#__designer_controls button{height:24px;border:1px solid #000;background:#fff;color:#000;font:inherit;padding:0 8px;}' +
+      '#__designer_controls{display:flex;flex-direction:column;gap:10px;padding:10px 12px;border-bottom:1px solid #000;background:#fff;color:#000;font:11px/1.2 "Share Tech Mono","Courier New",monospace;width:100%;box-sizing:border-box;z-index:1000;}' +
+      '#__designer_buttons{display:flex;align-items:center;flex-wrap:wrap;gap:6px;}' +
+      '#__designer_controls select,#__designer_controls button{height:24px;border:1px solid #000;background:#fff;color:#000;font:inherit;padding:0 8px;cursor:pointer;}' +
       '#__designer_controls button:hover{background:#f0f0f0;}' +
-      '#__designer_status{opacity:.75;min-width:74px;text-align:right;}';
+      '#__designer_status{opacity:.75;text-align:center;font-size:10px;padding-top:6px;border-top:1px solid #ccc;}';
     document.head.appendChild(style);
 
     var host = document.createElement('div');
     host.id = '__designer_controls';
     host.innerHTML =
+      '<div id="__designer_buttons">' +
       '<span>SCREEN</span>' +
       '<select id="__designer_screen"></select>' +
       '<button id="__designer_set_screen" type="button">Set Screen</button>' +
       '<button id="__designer_refresh_screen" type="button">Refresh Screen</button>' +
       '<button id="__designer_ota" type="button">OTA Mode</button>' +
-      '<span id="__designer_status">ready</span>';
-    document.body.appendChild(host);
+      '</div>' +
+      '<div id="__designer_status">ready</div>';
+    document.body.insertBefore(host, document.body.firstChild);
 
     function setCtlStatus(text) {
       var el = document.getElementById('__designer_status');
@@ -319,6 +322,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (window.Babel && typeof window.Babel.transformScriptTags === 'function') {
       window.Babel.transformScriptTags();
     }
+    // Reset injection flag so controls are re-injected into new document
+    window.__designerControlsInjected = false;
     injectDesignerControls();
   } catch (err) {
     setStatus('Error unpacking: ' + err.message);
