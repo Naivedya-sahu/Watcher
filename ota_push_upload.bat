@@ -6,7 +6,9 @@ setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
 set "TARGET=%~1"
-if "%TARGET%"=="" set "TARGET=192.168.1.7"
+if "%TARGET%"=="" set "TARGET=192.168.31.94"
+set "TYPE=%~2"
+if "%TYPE%"=="" set "TYPE=app"
 
 if not exist "build\watcher.bin" (
     echo ERROR: build\watcher.bin not found
@@ -14,27 +16,48 @@ if not exist "build\watcher.bin" (
     exit /b 1
 )
 
-echo [1/3] Arming OTA mode on %TARGET% ...
-curl --silent --show-error --fail ^
-  -X POST "http://%TARGET%/api/cmd" ^
-  -H "Content-Type: application/json" ^
-  -d "{\"cmd\":\"ota\"}"
-if errorlevel 1 (
-    echo.
-    echo ERROR: Failed to arm OTA mode.
-    exit /b 1
-)
+if /i "%TYPE%"=="app" (
+  echo [1/3] Arming OTA mode on %TARGET% ...
+  curl --silent --show-error --fail ^
+    -X POST "http://%TARGET%/api/cmd" ^
+    -H "Content-Type: application/json" ^
+    -d "{\"cmd\":\"ota\"}"
+  if errorlevel 1 (
+      echo.
+      echo ERROR: Failed to arm OTA mode.
+      exit /b 1
+  )
 
-echo.
-echo [2/3] Uploading build\watcher.bin ...
-curl --silent --show-error --fail ^
-  -X POST "http://%TARGET%/api/ota/upload" ^
-  -H "Content-Type: application/octet-stream" ^
-  --data-binary "@build\watcher.bin"
-if errorlevel 1 (
-    echo.
-    echo ERROR: OTA upload failed.
+  echo.
+  echo [2/3] Uploading build\watcher.bin ...
+  curl --silent --show-error --fail ^
+    -X POST "http://%TARGET%/api/ota/upload" ^
+    -H "Content-Type: application/octet-stream" ^
+    --data-binary "@build\watcher.bin"
+  if errorlevel 1 (
+      echo.
+      echo ERROR: OTA upload failed.
+      exit /b 1
+  )
+) else if /i "%TYPE%"=="spiffs" (
+  if not exist "build\spiffs.bin" (
+    echo ERROR: build\spiffs.bin not found
+    echo Run: idf.py build
     exit /b 1
+  )
+  echo [1/1] Uploading build\spiffs.bin to %TARGET% ...
+  curl --silent --show-error --fail ^
+    -X POST "http://%TARGET%/api/spiffs/upload" ^
+    -H "Content-Type: application/octet-stream" ^
+    --data-binary "@build\spiffs.bin"
+  if errorlevel 1 (
+      echo.
+      echo ERROR: SPIFFS upload failed.
+      exit /b 1
+  )
+) else (
+  echo ERROR: Unknown TYPE '%TYPE%'. Use 'app' or 'spiffs'.
+  exit /b 1
 )
 
 echo.

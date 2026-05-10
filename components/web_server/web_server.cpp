@@ -10,6 +10,7 @@
 #include "buzzer.h"
 #include "esp_http_server.h"
 #include "esp_spiffs.h"
+#include "esp_partition.h"
 #include "esp_log.h"
 #include "esp_app_desc.h"
 #include "esp_system.h"
@@ -178,10 +179,15 @@ static esp_err_t send_err(httpd_req_t *req, const char *msg) {
 
 // ── GET / — serve the main browser console from SPIFFS ───────
 static esp_err_t handle_root(httpd_req_t *req) {
-    FILE *f = fopen("/spiffs/www/index.html", "r");
+    // In AP mode, serve minimal WiFi setup page; otherwise full console
+    const char *html_file = g_cfg.ap_mode 
+        ? "/spiffs/www/wifi_setup.html"
+        : "/spiffs/www/webserver.html";
+    
+    FILE *f = fopen(html_file, "r");
     if (!f) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
-                            "index.html not found in SPIFFS");
+                            g_cfg.ap_mode ? "wifi_setup.html not found" : "webserver.html not found");
         return ESP_OK;
     }
 
@@ -299,9 +305,9 @@ static esp_err_t handle_bitmap(httpd_req_t *req) {
 
 // ── GET /designer — serve the dedicated designer tool from SPIFFS ─────
 static esp_err_t handle_designer(httpd_req_t *req) {
-    FILE *f = fopen("/spiffs/www/designer.html", "r");
+    FILE *f = fopen("/spiffs/www/webserver.html", "r");
     if (!f) {
-        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "designer.html not found — upload SPIFFS image");
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "webserver.html not found — upload SPIFFS image");
         return ESP_OK;
     }
     httpd_resp_set_type(req, "text/html; charset=utf-8");
@@ -425,6 +431,65 @@ static esp_err_t handle_ota_upload(httpd_req_t *req) {
     return ESP_OK;
 }
 
+// ── POST /api/spiffs/upload — receive SPIFFS image and write to spiffs partition ──
+static esp_err_t handle_spiffs_upload(httpd_req_t *req) {
+    const esp_partition_t *part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
+                                                           ESP_PARTITION_SUBTYPE_DATA_SPIFFS,
+                                                           "spiffs");
+    if (!part) return send_err(req, "spiffs partition not found");
+    if (req->content_len <= 0) return send_err(req, "bad body");
+
+    if ((size_t)req->content_len > part->size) return send_err(req, "image too large");
+
+    // If SPIFFS is mounted via VFS, unregister it first to avoid corruption
+    esp_vfs_spiffs_unregister(NULL);
+
+    // Erase entire partition before writing
+    esp_err_t er = esp_partition_erase_range(part, 0, part->size);
+    if (er != ESP_OK) {
+        ESP_LOGE(TAG, "spiffs erase failed: %s", esp_err_to_name(er));
+        return send_err(req, "erase failed");
+    }
+
+    uint8_t *buf = (uint8_t *)malloc(4096);
+    if (!buf) return send_err(req, "oom");
+
+    size_t offset = 0;
+    int remaining = req->content_len;
+    while (remaining > 0) {
+        int chunk = (remaining > 4096) ? 4096 : remaining;
+        int n = httpd_req_recv(req, (char *)buf, chunk);
+        if (n <= 0) { free(buf); ESP_LOGE(TAG, "spiffs upload recv failed"); return send_err(req, "upload recv failed"); }
+        esp_err_t wr = esp_partition_write(part, offset, buf, n);
+        if (wr != ESP_OK) { free(buf); ESP_LOGE(TAG, "spiffs write failed: %s", esp_err_to_name(wr)); return send_err(req, "write failed"); }
+        offset += n;
+        remaining -= n;
+    }
+    free(buf);
+
+    // Remount SPIFFS
+    esp_vfs_spiffs_conf_t conf = {
+        .base_path = "/spiffs",
+        .partition_label = NULL,
+        .max_files = 8,
+        .format_if_mount_failed = false,
+    };
+    esp_err_t r = esp_vfs_spiffs_register(&conf);
+    if (r != ESP_OK) {
+        ESP_LOGE(TAG, "spiffs remount failed: %s", esp_err_to_name(r));
+        return send_err(req, "remount failed");
+    }
+
+    size_t total = 0, used = 0;
+    esp_spiffs_info(NULL, &total, &used);
+    ESP_LOGI(TAG, "SPIFFS uploaded: %d bytes used of %d", (int)used, (int)total);
+
+    char resp[128];
+    snprintf(resp, sizeof(resp), "{\"ok\":true,\"used\":%d,\"total\":%d}", (int)used, (int)total);
+    send_json(req, resp);
+    return ESP_OK;
+}
+
 // ── WS handler ───────────────────────────────────────────────
 static esp_err_t handle_ws(httpd_req_t *req) {
     if (req->method == HTTP_GET) {
@@ -518,6 +583,7 @@ void web_server_start(fb_t *fb) {
     ROUTE(HTTP_GET,  "/api/bitmap",      handle_bitmap,      false);
     ROUTE(HTTP_POST, "/api/push-bitmap", handle_push_bitmap, false);
     ROUTE(HTTP_POST, "/api/ota/upload",  handle_ota_upload,   false);
+    ROUTE(HTTP_POST, "/api/spiffs/upload", handle_spiffs_upload, false);
     ROUTE(HTTP_GET,  "/designer",        handle_designer,     false);
     ROUTE(HTTP_GET,  "/api/alarms",      handle_alarms_get,   false);
     ROUTE(HTTP_POST, "/api/alarms",      handle_alarms_post,  false);

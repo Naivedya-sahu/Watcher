@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watcher - WiFi Setup</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+        .info-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4CAF50;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #2e7d32;
+        }
+        .status {
+            margin-bottom: 20px;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            display: none;
+        }
+        .status.show { display: block; }
+        .status.success {
+            background: #c8e6c9;
+            color: #1b5e20;
+            border-left: 4px solid #4CAF50;
+        }
+        .status.error {
+            background: #ffcdd2;
+            color: #c62828;
+            border-left: 4px solid #f44336;
+        }
+        .status.loading {
+            background: #e3f2fd;
+            color: #0d47a1;
+            border-left: 4px solid #2196F3;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #45a049; }
+        button:active { background: #3d8b40; }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .divider {
+            text-align: center;
+            margin: 30px 0 20px 0;
+            color: #999;
+            font-size: 12px;
+        }
+        .current-ssid {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WiFi Setup</h1>
+        <p class="subtitle">Configure your Watcher device WiFi</p>
+
+        <div class="info-box">
+            ⚠️ You are in <strong>AP Mode</strong>. Connected to: <strong>Watcher-SETUP</strong><br/>
+            Device IP: <strong>192.168.4.1</strong>
+        </div>
+
+        <div class="current-ssid" id="currentSsid" style="display:none;">
+            Current Network: <strong id="currentSsidText">—</strong>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <form id="form">
+            <div class="form-group">
+                <label for="ssid">WiFi Network (SSID)</label>
+                <input type="text" id="ssid" name="ssid" placeholder="Enter network name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="pass">Password</label>
+                <input type="password" id="pass" name="pass" placeholder="Enter password (leave blank for open)">
+            </div>
+
+            <button type="submit" id="submitBtn">Save & Connect</button>
+        </form>
+
+        <div class="divider">─────────────────</div>
+        
+        <p style="font-size: 12px; color: #666; margin-bottom: 15px;">
+            <strong>After updating WiFi:</strong><br/>
+            • Access device at <code style="background:#f0f0f0;padding:2px 4px;">http://watcher.local</code><br/>
+            • Or use device's assigned IP (check your router)
+        </p>
+
+        <button onclick="window.location.href='http://watcher.local'" style="background: #2196F3; margin-bottom: 10px;">
+            Access Full Console
+        </button>
+        <button onclick="location.reload()" style="background: #757575;">Refresh</button>
+    </div>
+
+    <script>
+        // Load current config on page load
+        async function loadCurrentConfig() {
+            try {
+                const res = await fetch('/api/state');
+                const data = await res.json();
+                if (data.ssid && data.ssid !== '') {
+                    document.getElementById('currentSsid').style.display = 'block';
+                    document.getElementById('currentSsidText').textContent = data.ssid;
+                }
+            } catch (e) {
+                console.log('Could not load current config:', e);
+            }
+        }
+
+        function showStatus(msg, type) {
+            const el = document.getElementById('status');
+            el.textContent = msg;
+            el.className = `status show ${type}`;
+        }
+
+        function clearStatus() {
+            document.getElementById('status').className = 'status';
+        }
+
+        document.getElementById('form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const ssid = document.getElementById('ssid').value.trim();
+            const pass = document.getElementById('pass').value;
+            const btn = document.getElementById('submitBtn');
+
+            if (!ssid) {
+                showStatus('❌ SSID cannot be empty', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            showStatus('📡 Updating WiFi credentials...', 'loading');
+
+            try {
+                // Update SSID
+                let res = await fetch('/api/cmd', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cmd: 'cfg', key: 'ssid', val: ssid })
+                });
+                if (!res.ok) throw new Error('Failed to update SSID');
+
+                // Update password
+                res = await fetch('/api/cmd', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cmd: 'cfg', key: 'pass', val: pass })
+                });
+                if (!res.ok) throw new Error('Failed to update password');
+
+                // Disable AP mode so device connects to WiFi
+                res = await fetch('/api/cmd', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cmd: 'cfg', key: 'ap_mode', nval: false })
+                });
+                if (!res.ok) throw new Error('Failed to disable AP mode');
+
+                showStatus('✅ WiFi saved! Device will reconnect in 10 seconds...', 'success');
+                setTimeout(() => {
+                    showStatus('📡 Connecting to ' + ssid + '...', 'loading');
+                    setTimeout(() => {
+                        showStatus('⏳ If you set up the correct credentials, your device should be accessible at http://watcher.local or its IP address', 'success');
+                    }, 3000);
+                }, 10000);
+
+            } catch (error) {
+                showStatus('❌ Error: ' + error.message, 'error');
+                btn.disabled = false;
+            }
+        });
+
+        loadCurrentConfig();
+    </script>
+</body>
+</html>

@@ -13,8 +13,8 @@ end
 
 # Load bootloader symbols
 set confirm off
-    add-symbol-file D:/Development/Personal/Watcher/v7.0(DEPRECATED)/v7.1/build/bootloader/bootloader.elf
+    add-symbol-file D:/Development/Personal/Watcher/v8/build/bootloader/bootloader.elf
 set confirm on
 
 # Load application symbols
-file D:/Development/Personal/Watcher/v7.0(DEPRECATED)/v7.1/build/watcher.elf
+file D:/Development/Personal/Watcher/v8/build/watcher.elf

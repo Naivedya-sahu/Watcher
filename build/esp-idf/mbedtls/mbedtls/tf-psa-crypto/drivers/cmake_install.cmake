@@ -39,15 +39,15 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("D:/Development/Personal/Watcher/v7.0(DEPRECATED)/v7.1/build/esp-idf/mbedtls/mbedtls/tf-psa-crypto/drivers/everest/cmake_install.cmake")
-  include("D:/Development/Personal/Watcher/v7.0(DEPRECATED)/v7.1/build/esp-idf/mbedtls/mbedtls/tf-psa-crypto/drivers/p256-m/cmake_install.cmake")
-  include("D:/Development/Personal/Watcher/v7.0(DEPRECATED)/v7.1/build/esp-idf/mbedtls/mbedtls/tf-psa-crypto/drivers/builtin/cmake_install.cmake")
+  include("D:/Development/Personal/Watcher/v8/build/esp-idf/mbedtls/mbedtls/tf-psa-crypto/drivers/everest/cmake_install.cmake")
+  include("D:/Development/Personal/Watcher/v8/build/esp-idf/mbedtls/mbedtls/tf-psa-crypto/drivers/p256-m/cmake_install.cmake")
+  include("D:/Development/Personal/Watcher/v8/build/esp-idf/mbedtls/mbedtls/tf-psa-crypto/drivers/builtin/cmake_install.cmake")
 
 endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
 if(CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "D:/Development/Personal/Watcher/v7.0(DEPRECATED)/v7.1/build/esp-idf/mbedtls/mbedtls/tf-psa-crypto/drivers/install_local_manifest.txt"
+  file(WRITE "D:/Development/Personal/Watcher/v8/build/esp-idf/mbedtls/mbedtls/tf-psa-crypto/drivers/install_local_manifest.txt"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()

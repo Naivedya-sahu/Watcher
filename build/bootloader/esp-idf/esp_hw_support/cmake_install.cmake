@@ -39,22 +39,22 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("D:/Development/Personal/Watcher/v7.0(DEPRECATED)/v7.1/build/bootloader/esp-idf/esp_hw_support/port/esp32s3/cmake_install.cmake")
+  include("D:/Development/Personal/Watcher/v8/build/bootloader/esp-idf/esp_hw_support/port/esp32s3/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("D:/Development/Personal/Watcher/v7.0(DEPRECATED)/v7.1/build/bootloader/esp-idf/esp_hw_support/mspi_timing_tuning/port/esp32s3/cmake_install.cmake")
+  include("D:/Development/Personal/Watcher/v8/build/bootloader/esp-idf/esp_hw_support/mspi_timing_tuning/port/esp32s3/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("D:/Development/Personal/Watcher/v7.0(DEPRECATED)/v7.1/build/bootloader/esp-idf/esp_hw_support/lowpower/cmake_install.cmake")
+  include("D:/Development/Personal/Watcher/v8/build/bootloader/esp-idf/esp_hw_support/lowpower/cmake_install.cmake")
 endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
 if(CMAKE_INSTALL_LOCAL_ONLY)
-  file(WRITE "D:/Development/Personal/Watcher/v7.0(DEPRECATED)/v7.1/build/bootloader/esp-idf/esp_hw_support/install_local_manifest.txt"
+  file(WRITE "D:/Development/Personal/Watcher/v8/build/bootloader/esp-idf/esp_hw_support/install_local_manifest.txt"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()
