@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0;padding:0;box-sizing:border-box; }
+body { background:#fff; padding:20px; }
+.row { display:flex; gap:6px; align-items:center; margin-bottom:10px; }
+.label { font-family:'Share Tech Mono', monospace,monospace; font-size:8px; color:#aaa; text-transform:uppercase; letter-spacing:0.08em; min-width:90px; }
+/* Task list items */
+.task { font-family:'Share Tech Mono', monospace,sans-serif; font-size:12px; color:#000; display:flex; align-items:center; gap:8px; }
+.checkbox { width:10px;height:10px;border:1px solid #000;flex-shrink:0; }
+.checkbox.done { background:#000; }
+.task.done span { text-decoration:line-through; color:#888; }
+.task-list { display:flex;flex-direction:column;gap:6px;border:1px solid #000;padding:10px 12px;width:200px; }
+.tl-header { font-family:'Share Tech Mono', monospace,monospace; font-size:9px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; border-bottom:1px solid #000; padding-bottom:4px; margin-bottom:6px; }
+</style></head><body>
+<div class="label" style="margin-bottom:10px">Task List</div>
+<div class="task-list">
+  <div class="tl-header">Tasks</div>
+  <div class="task done"><div class="checkbox done"></div><span>Write weekly review</span></div>
+  <div class="task"><div class="checkbox"></div><span>Review pull requests</span></div>
+  <div class="task"><div class="checkbox"></div><span>Update Obsidian vault</span></div>
+  <div class="task"><div class="checkbox"></div><span>Plan next sprint</span></div>
+  <div class="task"><div class="checkbox"></div><span>Lunch with team</span></div>
+</div>
+</body></html>

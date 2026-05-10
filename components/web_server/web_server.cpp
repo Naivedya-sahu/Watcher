@@ -1,4 +1,4 @@
-// web_server.cpp — HTTP + WebSocket server for Watcher v7.1
+// web_server.cpp — HTTP + WebSocket server for Watcher v8.0
 // Serves the standalone React web console at /
 // REST API for state query and command dispatch.
 // Note: React console is standalone — REST/WS is for future connectivity
@@ -17,6 +17,10 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "cJSON.h"
+#include "esp_timer.h"
+#include "esp_heap_caps.h"
+#include "esp_wifi.h"
+#include "esp_netif.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,6 +75,8 @@ static uint32_t (*cb_pomo_get_remaining_s)(void) = NULL;
 static const char *(*cb_pomo_get_mode_str)(void) = NULL;
 static int (*cb_pomo_get_session)(void) = NULL;
 static bool (*cb_time_svc_is_synced)(void) = NULL;
+static void (*cb_btn)(int btn_id, int evt) = NULL;
+static void (*cb_enc)(int delta)           = NULL;
 
 void web_server_set_screen_callbacks(
     const char *(*cb_current_id)(void),
@@ -84,6 +90,11 @@ void web_server_set_screen_callbacks(
 
 void web_server_set_push_callback(void (*cb)(void)) {
     cb_push_raw = cb;
+}
+
+void web_server_set_input_callbacks(void (*cb_btn_in)(int, int), void (*cb_enc_in)(int)) {
+    cb_btn = cb_btn_in;
+    cb_enc = cb_enc_in;
 }
 
 void web_server_set_pomo_time_callbacks(
@@ -120,18 +131,13 @@ static void ws_remove(int fd) {
 
 // ── State JSON ────────────────────────────────────────────────
 // Complete device snapshot sent to WS clients and returned by GET /api/state.
-// Fields:
-//   system   — screen, fw_ver, ap_mode, ssid, tz, ntp_synced, ota_running
-//   display  — buzzer, dark, h24
-//   pomo     — pomo_running, pomo_remaining_s, pomo_mode, pomo_session
-//   cfg      — focus_m, break_m, long_m, cycles
 static char *build_state_json(void) {
     const esp_app_desc_t *app = esp_app_get_description();
     cJSON *r = cJSON_CreateObject();
 
     // ── System ──────────────────────────────────────────────
     cJSON_AddStringToObject(r, "screen",       cb_screen_current_id ? cb_screen_current_id() : "");
-    cJSON_AddStringToObject(r, "fw_ver",       app ? app->version : "7.1.0");
+    cJSON_AddStringToObject(r, "fw_ver",       app ? app->version : "8.0.0");
     cJSON_AddBoolToObject  (r, "ap_mode",      g_cfg.ap_mode);
     cJSON_AddStringToObject(r, "ssid",         g_cfg.wifi_ssid);
     cJSON_AddStringToObject(r, "tz",           g_cfg.timezone);
@@ -140,10 +146,40 @@ static char *build_state_json(void) {
     cJSON_AddBoolToObject  (r, "ota_armed",    ota_is_armed());
     cJSON_AddStringToObject(r, "ota_url",      g_cfg.ota_url);
 
-    // ── Display / prefs ─────────────────────────────────────
-    cJSON_AddBoolToObject  (r, "buzzer",       g_cfg.buzzer_on);
-    cJSON_AddBoolToObject  (r, "dark",         g_cfg.theme_dark);
-    cJSON_AddBoolToObject  (r, "h24",          g_cfg.time_24h);
+    // ── Device identity / prefs ─────────────────────────────
+    cJSON_AddStringToObject(r, "device_name",       g_cfg.device_name[0] ? g_cfg.device_name : "watcher");
+    cJSON_AddStringToObject(r, "ntp_server",        g_cfg.ntp_server);
+    cJSON_AddBoolToObject  (r, "buzzer",            g_cfg.buzzer_on);
+    cJSON_AddBoolToObject  (r, "dark",              g_cfg.theme_dark);
+    cJSON_AddBoolToObject  (r, "h24",               g_cfg.time_24h);
+    cJSON_AddNumberToObject(r, "date_format",       g_cfg.date_format);
+    cJSON_AddNumberToObject(r, "sleep_timeout_min", g_cfg.sleep_timeout_min);
+
+    // ── Runtime telemetry ────────────────────────────────────
+    cJSON_AddNumberToObject(r, "heap_free", (double)esp_get_free_heap_size());
+    cJSON_AddNumberToObject(r, "uptime_s",  (double)(esp_timer_get_time() / 1000000ULL));
+
+    // ── Network ──────────────────────────────────────────────
+    if (!g_cfg.ap_mode) {
+        esp_netif_t *sta_if = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+        if (sta_if) {
+            esp_netif_ip_info_t ip_info = {};
+            if (esp_netif_get_ip_info(sta_if, &ip_info) == ESP_OK && ip_info.ip.addr != 0) {
+                char ip_str[16];
+                snprintf(ip_str, sizeof(ip_str), IPSTR, IP2STR(&ip_info.ip));
+                cJSON_AddStringToObject(r, "ip", ip_str);
+            } else {
+                cJSON_AddStringToObject(r, "ip", "");
+            }
+        }
+        wifi_ap_record_t ap = {};
+        if (esp_wifi_sta_get_ap_info(&ap) == ESP_OK) {
+            cJSON_AddNumberToObject(r, "rssi", ap.rssi);
+        }
+    } else {
+        cJSON_AddStringToObject(r, "ip", "192.168.4.1");
+        cJSON_AddNumberToObject(r, "rssi", 0);
+    }
 
     // ── Pomodoro live state ──────────────────────────────────
     cJSON_AddBoolToObject  (r, "pomo_running",     cb_pomo_is_running ? cb_pomo_is_running() : false);
@@ -278,10 +314,34 @@ static esp_err_t handle_cmd(httpd_req_t *req) {
             if (!strcmp(key,"focus_m"))   g_cfg.pomo_focus_mins  = (int)cJSON_GetNumberValue(nval);
             if (!strcmp(key,"break_m"))   g_cfg.pomo_break_mins  = (int)cJSON_GetNumberValue(nval);
             if (!strcmp(key,"long_m"))    g_cfg.pomo_long_mins   = (int)cJSON_GetNumberValue(nval);
-            if (!strcmp(key,"cycles"))    g_cfg.pomo_cycles      = (int)cJSON_GetNumberValue(nval);
+            if (!strcmp(key,"cycles"))         g_cfg.pomo_cycles        = (int)cJSON_GetNumberValue(nval);
+            if (!strcmp(key,"sleep_timeout_min")) g_cfg.sleep_timeout_min  = (int)cJSON_GetNumberValue(nval);
             cfg_save();
         }
         if (cb_screen_force_render) cb_screen_force_render();
+
+    } else if (strcmp(cmd, "refresh") == 0) {
+        // Force a full EPD refresh on the current screen.
+        if (cb_screen_force_render) {
+            if (s_fb) s_fb->force_full_next = true;
+            cb_screen_force_render();
+        }
+
+    } else if (strcmp(cmd, "btn") == 0) {
+        // Simulate a hardware button press (web console HW buttons panel).
+        // Body: {"cmd":"btn","id":1,"evt":"short"|"long"}
+        cJSON *id_item  = cJSON_GetObjectItem(j, "id");
+        const char *evt = cJSON_GetStringValue(cJSON_GetObjectItem(j, "evt"));
+        if (id_item && evt && cb_btn) {
+            int id_val  = (int)cJSON_GetNumberValue(id_item) - 1; // 1-based → 0-based
+            int evt_val = (strcmp(evt, "long") == 0) ? 1 : 0;
+            if (id_val >= 0 && id_val <= 2) cb_btn(id_val, evt_val);
+        }
+
+    } else if (strcmp(cmd, "enc") == 0) {
+        // Simulate encoder rotation. Body: {"cmd":"enc","delta":1|-1}
+        cJSON *delta_item = cJSON_GetObjectItem(j, "delta");
+        if (delta_item && cb_enc) cb_enc((int)cJSON_GetNumberValue(delta_item));
 
     } else if (strcmp(cmd, "ota") == 0) {
         // Arm OTA upload mode. Host should then POST binary to /api/ota/upload.
@@ -289,6 +349,13 @@ static esp_err_t handle_cmd(httpd_req_t *req) {
             cJSON_Delete(j);
             return send_err(req, "ota busy");
         }
+
+    } else if (strcmp(cmd, "restart") == 0) {
+        cJSON_Delete(j);
+        send_json(req, "{\"ok\":true,\"msg\":\"restarting\"}");
+        vTaskDelay(pdMS_TO_TICKS(250));
+        esp_restart();
+        return ESP_OK;
     }
 
     cJSON_Delete(j);

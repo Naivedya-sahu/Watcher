@@ -14,7 +14,7 @@
 // are used instead of physical inputs.
 #define HARDWARE_ENABLED 1
 // 0 = inputs (buttons/encoder) disabled; 1 = enable inputs
-#define ENABLE_INPUTS 0
+#define ENABLE_INPUTS 1
 
 // EPD SPI (SPI2_HOST / FSPI — native pins, no remapping needed)
 #define PIN_EPD_DIN   11  // MOSI
@@ -29,18 +29,18 @@
 // #define PIN_SCL        9
 
 // Buttons (active-low, 10K external pull-ups on peripheral board)
-// WARNING: IO35/36/37 may conflict with Octal PSRAM on N8R8
-// Run test_gpio first to verify — if conflict, reassign to IO39/40/41
-#define PIN_BTN_1     39  // SW1: prev screen / back
-#define PIN_BTN_2     40  // SW2: next screen
-#define PIN_BTN_3     41  // SW3: Pomodoro toggle (short) / stop+reset (long)
+// IO35/36/37 conflict with Octal PSRAM on N8R8 — PSRAM must remain disabled in sdkconfig.
+#define PIN_BTN_1     40  // SW1: BTN A — back
+#define PIN_BTN_2     39  // SW2: BTN B — next
+#define PIN_BTN_3     38  // SW3: BTN C — Pomodoro toggle (short) / stop+reset (long)
 #define BTN_LONG_MS   600  // Long press threshold (ms)
 
 // Buzzer (LEDC timer 0, channel 0)
-#define PIN_BUZZER    38
+#define PIN_BUZZER    41
 #define BUZZER_CH      0
 
 // EC11 rotary encoder (optical mouse scroll wheel)
+// IO35/36/37 are Octal PSRAM pins on N8R8 — PSRAM disabled to free these as GPIOs.
 // 4.7K pull-ups on peripheral board; no debounce needed on A/B
 #define PIN_ENC_A   35   // ISR ANYEDGE
 #define PIN_ENC_B   36   // ISR ANYEDGE

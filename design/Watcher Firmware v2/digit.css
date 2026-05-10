@@ -1,0 +1,19 @@
+/* 7-segment digit shapes — copied from Watcher Web Console */
+.digit { position: relative; width: 62px; height: 110px; flex-shrink: 0; }
+.seg { position: absolute; }
+.sh {
+  left: 8px; width: 46px; height: 9px;
+  clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 50%,
+                     calc(100% - 6px) 100%, 6px 100%, 0 50%);
+}
+.sv {
+  width: 9px; height: 41px;
+  clip-path: polygon(0 5px, 50% 0, 100% 0, 100% 100%, 50% 100%, 0 calc(100% - 5px));
+}
+.seg-top { top: 0; }
+.seg-mid { top: 50px; }
+.seg-bot { top: 101px; }
+.seg-tl  { left: 0; top: 9px; }
+.seg-tr  { right: 0; top: 9px; }
+.seg-bl  { left: 0; top: 60px; }
+.seg-br  { right: 0; top: 60px; }

@@ -225,7 +225,7 @@
                 });
                 if (!res.ok) throw new Error('Failed to update password');
 
-                // Disable AP mode so device connects to WiFi
+                // Disable AP mode so device connects to WiFi on next boot
                 res = await fetch('/api/cmd', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -233,13 +233,18 @@
                 });
                 if (!res.ok) throw new Error('Failed to disable AP mode');
 
-                showStatus('✅ WiFi saved! Device will reconnect in 10 seconds...', 'success');
+                showStatus('✅ Credentials saved — restarting device...', 'success');
+
+                // Restart device to apply new WiFi credentials
+                fetch('/api/cmd', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cmd: 'restart' })
+                }).catch(() => {});  // device reboots immediately, response may not arrive
+
                 setTimeout(() => {
-                    showStatus('📡 Connecting to ' + ssid + '...', 'loading');
-                    setTimeout(() => {
-                        showStatus('⏳ If you set up the correct credentials, your device should be accessible at http://watcher.local or its IP address', 'success');
-                    }, 3000);
-                }, 10000);
+                    showStatus('📡 Device restarting — connect to your router and access http://watcher.local', 'success');
+                }, 2000);
 
             } catch (error) {
                 showStatus('❌ Error: ' + error.message, 'error');

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0;padding:0;box-sizing:border-box; }
+body { background:#fff; padding:20px; }
+.cal { width:260px; font-family:'Share Tech Mono', monospace,monospace; border:1px solid #ddd; }
+.cal-header { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-bottom:1px solid #000; }
+.cal-title { font-size:11px; font-weight:600; letter-spacing:0.05em; }
+.nav { font-size:12px; cursor:pointer; padding:0 4px; }
+.cal-days { display:grid; grid-template-columns:repeat(7,1fr); text-align:center; padding:4px 6px 2px; }
+.cal-days span { font-size:8px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:#888; padding:2px 0; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); text-align:center; padding:0 6px 6px; gap:1px; }
+.cal-cell { font-size:10px; font-weight:400; padding:4px 2px; cursor:pointer; font-family:'Share Tech Mono', monospace,monospace; }
+.cal-cell.today { background:#000; color:#fff; }
+.cal-cell.other-month { color:#CCC; }
+.cal-cell.has-dot::after { content:''; display:block; width:3px;height:3px;background:#000;border-radius:50%;margin:1px auto 0; }
+</style></head><body>
+<div class="cal">
+  <div class="cal-header">
+    <span class="nav">‹</span>
+    <span class="cal-title">January 2022</span>
+    <span class="nav">›</span>
+  </div>
+  <div class="cal-days">
+    <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+  </div>
+  <div class="cal-grid">
+    <span class="cal-cell other-month">26</span><span class="cal-cell other-month">27</span><span class="cal-cell other-month">28</span><span class="cal-cell other-month">29</span><span class="cal-cell other-month">30</span><span class="cal-cell other-month">31</span><span class="cal-cell">1</span>
+    <span class="cal-cell">2</span><span class="cal-cell has-dot">3</span><span class="cal-cell">4</span><span class="cal-cell">5</span><span class="cal-cell">6</span><span class="cal-cell">7</span><span class="cal-cell">8</span>
+    <span class="cal-cell">9</span><span class="cal-cell">10</span><span class="cal-cell">11</span><span class="cal-cell">12</span><span class="cal-cell">13</span><span class="cal-cell">14</span><span class="cal-cell">15</span>
+    <span class="cal-cell">16</span><span class="cal-cell">17</span><span class="cal-cell">18</span><span class="cal-cell today">19</span><span class="cal-cell">20</span><span class="cal-cell">21</span><span class="cal-cell">22</span>
+    <span class="cal-cell">23</span><span class="cal-cell">24</span><span class="cal-cell">25</span><span class="cal-cell">26</span><span class="cal-cell">27</span><span class="cal-cell">28</span><span class="cal-cell">29</span>
+    <span class="cal-cell">30</span><span class="cal-cell">31</span>
+  </div>
+</div>
+</body></html>

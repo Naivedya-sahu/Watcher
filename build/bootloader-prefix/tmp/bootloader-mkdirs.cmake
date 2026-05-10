@@ -10,18 +10,18 @@ if(NOT EXISTS "C:/esp/v6.0/esp-idf/components/bootloader/subproject")
   file(MAKE_DIRECTORY "C:/esp/v6.0/esp-idf/components/bootloader/subproject")
 endif()
 file(MAKE_DIRECTORY
-  "D:/Development/Personal/Watcher/v8/build/bootloader"
-  "D:/Development/Personal/Watcher/v8/build/bootloader-prefix"
-  "D:/Development/Personal/Watcher/v8/build/bootloader-prefix/tmp"
-  "D:/Development/Personal/Watcher/v8/build/bootloader-prefix/src/bootloader-stamp"
-  "D:/Development/Personal/Watcher/v8/build/bootloader-prefix/src"
-  "D:/Development/Personal/Watcher/v8/build/bootloader-prefix/src/bootloader-stamp"
+  "C:/Users/NAVY/Documents/Watcher/build/bootloader"
+  "C:/Users/NAVY/Documents/Watcher/build/bootloader-prefix"
+  "C:/Users/NAVY/Documents/Watcher/build/bootloader-prefix/tmp"
+  "C:/Users/NAVY/Documents/Watcher/build/bootloader-prefix/src/bootloader-stamp"
+  "C:/Users/NAVY/Documents/Watcher/build/bootloader-prefix/src"
+  "C:/Users/NAVY/Documents/Watcher/build/bootloader-prefix/src/bootloader-stamp"
 )
 
 set(configSubDirs )
 foreach(subDir IN LISTS configSubDirs)
-    file(MAKE_DIRECTORY "D:/Development/Personal/Watcher/v8/build/bootloader-prefix/src/bootloader-stamp/${subDir}")
+    file(MAKE_DIRECTORY "C:/Users/NAVY/Documents/Watcher/build/bootloader-prefix/src/bootloader-stamp/${subDir}")
 endforeach()
 if(cfgdir)
-  file(MAKE_DIRECTORY "D:/Development/Personal/Watcher/v8/build/bootloader-prefix/src/bootloader-stamp${cfgdir}") # cfgdir has leading slash
+  file(MAKE_DIRECTORY "C:/Users/NAVY/Documents/Watcher/build/bootloader-prefix/src/bootloader-stamp${cfgdir}") # cfgdir has leading slash
 endif()

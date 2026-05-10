@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0;padding:0;box-sizing:border-box; }
+body { background:#fff; font-family:'Share Tech Mono', monospace,monospace; padding:20px; }
+.section { margin-bottom:16px; }
+.label { font-size:8px; color:#aaa; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px; }
+.space-row { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+.block { background:#171717; height:12px; }
+.val { font-size:9px; color:#666; min-width:80px; }
+.border-row { display:flex; gap:16px; align-items:center; margin-bottom:6px; }
+.b-sample { width:60px; height:20px; }
+.b-ink { border:1px solid #000; }
+.b-light { border:1px solid #CCC; }
+.radius-row { display:flex; gap:12px; align-items:center; }
+.r-sample { width:40px; height:28px; background:#000; }
+.r-none { border-radius:0; }
+.r-sm { border-radius:4px; }
+.r-pill { border-radius:999px; }
+</style></head><body>
+<div class="section">
+  <div class="label">spacing scale (8px base)</div>
+  <div class="space-row"><div class="block" style="width:4px"></div><span class="val">--space-1 · 4px</span></div>
+  <div class="space-row"><div class="block" style="width:8px"></div><span class="val">--space-2 · 8px</span></div>
+  <div class="space-row"><div class="block" style="width:12px"></div><span class="val">--space-3 · 12px</span></div>
+  <div class="space-row"><div class="block" style="width:16px"></div><span class="val">--space-4 · 16px</span></div>
+  <div class="space-row"><div class="block" style="width:24px"></div><span class="val">--space-6 · 24px</span></div>
+  <div class="space-row"><div class="block" style="width:32px"></div><span class="val">--space-8 · 32px</span></div>
+</div>
+<div class="section">
+  <div class="label">borders</div>
+  <div class="border-row">
+    <div class="b-sample b-ink"></div><span style="font-size:9px;color:#666">1px solid #000 — --border-thin</span>
+  </div>
+  <div class="border-row">
+    <div class="b-sample b-light"></div><span style="font-size:9px;color:#666">1px solid #CCC — --border-light</span>
+  </div>
+</div>
+<div class="section" style="margin-bottom:0">
+  <div class="label">corner radii</div>
+  <div class="radius-row">
+    <div><div class="r-sample r-none"></div><div style="font-size:8px;color:#888;margin-top:4px">none · 0</div></div>
+    <div><div class="r-sample r-sm"></div><div style="font-size:8px;color:#888;margin-top:4px">sm · 4px</div></div>
+    <div><div class="r-sample r-pill"></div><div style="font-size:8px;color:#888;margin-top:4px">pill · 999</div></div>
+  </div>
+</div>
+</body></html>

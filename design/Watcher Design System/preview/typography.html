@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0;padding:0;box-sizing:border-box; }
+body { background:#fff; padding:20px; }
+.row { display:flex; align-items:baseline; gap:16px; margin-bottom:14px; border-bottom:1px solid #f0f0f0; padding-bottom:10px; }
+.meta { font-family:'Share Tech Mono', monospace,monospace; font-size:8px; color:#aaa; letter-spacing:0.06em; text-transform:uppercase; min-width:120px; }
+.time-display { font-family:'Share Tech Mono', monospace,monospace; font-size:48px; font-weight:700; letter-spacing:0.05em; color:#171717; line-height:1; }
+.label-style { font-family:'Share Tech Mono', monospace,monospace; font-size:10px; font-weight:600; letter-spacing:0.2em; text-transform:uppercase; color:#000; }
+.status-style { font-family:'Share Tech Mono', monospace,sans-serif; font-size:13px; font-weight:500; color:#000; }
+.body-style { font-family:'Share Tech Mono', monospace,sans-serif; font-size:12px; font-weight:400; color:#000; line-height:1.5; }
+.date-style { font-family:'Share Tech Mono', monospace,sans-serif; font-size:10px; color:#888; }
+.cal-style { font-family:'Share Tech Mono', monospace,monospace; font-size:8px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:#000; }
+</style></head><body>
+<div class="row">
+  <span class="meta">time display<br>mono 48/700</span>
+  <div class="time-display">18:36</div>
+</div>
+<div class="row">
+  <span class="meta">ui label<br>mono 10/600 caps</span>
+  <div class="label-style">FOCUS &nbsp; BREAK &nbsp; STOP &nbsp; START</div>
+</div>
+<div class="row">
+  <span class="meta">status<br>grotesk 13/500</span>
+  <div class="status-style">On Break &nbsp;·&nbsp; Session</div>
+</div>
+<div class="row">
+  <span class="meta">body / task<br>grotesk 12/400</span>
+  <div class="body-style">Write weekly review<br>Review pull requests</div>
+</div>
+<div class="row">
+  <span class="meta">date string<br>grotesk 10/400</span>
+  <div class="date-style">Saturday, 24th Sept. 2025</div>
+</div>
+<div class="row" style="border-bottom:none;margin-bottom:0">
+  <span class="meta">cal headers<br>mono 8/500 caps</span>
+  <div class="cal-style">Sun &nbsp; Mon &nbsp; Tue &nbsp; Wed &nbsp; Thu &nbsp; Fri &nbsp; Sat</div>
+</div>
+</body></html>

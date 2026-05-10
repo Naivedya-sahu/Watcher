@@ -1,0 +1,248 @@
+/* ============================================================
+   WATCHER DESIGN SYSTEM — Colors & Typography
+   E-paper 4.2" desktop productivity companion
+   ============================================================ */
+
+/*
+  TARGET FONT: Monocraft — pixel-art monospace by IdreesInc
+  https://github.com/IdreesInc/Monocraft
+  Not on Google Fonts — must be self-hosted from the GitHub release.
+  Web substitute (placeholder only): VT323 for pixel feel, Share Tech Mono for cleaner mono.
+*/
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap');
+/* To use Monocraft when self-hosted, add:
+@font-face {
+  font-family: 'Monocraft';
+  src: url('fonts/Monocraft.otf') format('opentype');
+  font-weight: 400;
+}
+*/
+
+/* ============================================================
+   BASE COLOR TOKENS
+   Derived from e-paper hardware constraints: pure B/W + grays
+   ============================================================ */
+:root {
+  /* Core e-paper palette */
+  --ink:        #000000;   /* Primary: text, filled buttons, active segments */
+  --paper:      #FFFFFF;   /* Background: screen surface */
+  --ghost:      #E6E6E6;   /* Inactive 7-segment digit outlines */
+  --dim:        #171717;   /* Active digit fill (near-black) */
+  --mid:        #888888;   /* Mid-gray, dithering midtone */
+  --light:      #CCCCCC;   /* Light gray, secondary borders */
+  --pale:       #F5F5F5;   /* Near-white for subtle hover states */
+
+  /* ============================================================
+     SEMANTIC COLOR TOKENS
+     ============================================================ */
+  --color-bg:           var(--paper);
+  --color-fg:           var(--ink);
+  --color-fg-secondary: var(--mid);
+  --color-fg-tertiary:  var(--light);
+  --color-border:       var(--ink);
+  --color-border-light: var(--light);
+  --color-surface:      var(--paper);
+  --color-surface-alt:  var(--pale);
+
+  /* Button states */
+  --color-btn-bg:         var(--ink);
+  --color-btn-fg:         var(--paper);
+  --color-btn-bg-ghost:   var(--paper);
+  --color-btn-fg-ghost:   var(--ink);
+  --color-btn-border:     var(--ink);
+  --color-btn-hover-bg:   var(--pale);
+  --color-btn-hover-fg:   var(--ink);
+
+  /* Segment display */
+  --color-segment-active:   var(--dim);
+  --color-segment-inactive: var(--ghost);
+
+  /* Progress ring (Pomodoro dots) */
+  --color-dot-filled:  var(--ink);
+  --color-dot-empty:   var(--ghost);
+
+  /* ============================================================
+     TYPOGRAPHY TOKENS
+     ⚠️ Font files not provided — substituted from Google Fonts:
+        IBM Plex Mono  → for labels, buttons, monospace UI
+        Space Grotesk  → for body, calendar, date text
+     ============================================================ */
+
+  /* Font families
+     Target: Monocraft (self-hosted OTF from GitHub)
+     Fallback chain: VT323 (pixel feel) → Share Tech Mono → system mono
+  */
+  --font-mono:    'Monocraft', 'VT323', 'Share Tech Mono', 'Courier New', monospace;
+  --font-sans:    'Monocraft', 'VT323', 'Share Tech Mono', monospace; /* e-paper = mono everywhere */
+  --font-display: var(--font-mono);
+
+  /* Font sizes — scaled for 400×300 e-paper canvas */
+  --text-xxs:  8px;
+  --text-xs:   10px;
+  --text-sm:   12px;
+  --text-base: 14px;
+  --text-md:   16px;
+  --text-lg:   20px;
+  --text-xl:   24px;
+  --text-2xl:  32px;
+  --text-3xl:  48px;
+  --text-4xl:  64px;
+
+  /* Font weights */
+  --weight-light:   300;
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semibold: 600;
+  --weight-bold:    700;
+
+  /* Line heights */
+  --leading-tight:  1.1;
+  --leading-snug:   1.25;
+  --leading-normal: 1.5;
+
+  /* Letter spacing */
+  --tracking-tight:  -0.01em;
+  --tracking-normal: 0em;
+  --tracking-wide:   0.05em;
+  --tracking-wider:  0.1em;
+  --tracking-widest: 0.2em;
+
+  /* ============================================================
+     SEMANTIC TYPE STYLES
+     ============================================================ */
+
+  /* Clock time display — rendered as SVG on device */
+  /* --type-clock: SVG paths (see assets/digit-segments.svg) */
+
+  /* Large display time (fallback / web) */
+  --type-time-family:   var(--font-mono);
+  --type-time-size:     var(--text-4xl);
+  --type-time-weight:   var(--weight-bold);
+  --type-time-tracking: var(--tracking-wide);
+
+  /* UI action labels: FOCUS, BREAK, STOP, START */
+  --type-label-family:   var(--font-mono);
+  --type-label-size:     var(--text-xs);
+  --type-label-weight:   var(--weight-semibold);
+  --type-label-tracking: var(--tracking-widest);
+  --type-label-transform: uppercase;
+
+  /* Status text: "On Break", "Session" */
+  --type-status-family:   var(--font-sans);
+  --type-status-size:     var(--text-sm);
+  --type-status-weight:   var(--weight-medium);
+
+  /* Body / list text */
+  --type-body-family:   var(--font-sans);
+  --type-body-size:     var(--text-sm);
+  --type-body-weight:   var(--weight-regular);
+  --type-body-leading:  var(--leading-normal);
+
+  /* Calendar day headers: Sun Mon Tue ... */
+  --type-cal-header-family:   var(--font-mono);
+  --type-cal-header-size:     var(--text-xxs);
+  --type-cal-header-weight:   var(--weight-medium);
+  --type-cal-header-tracking: var(--tracking-wide);
+
+  /* Date string: Saturday, 24th Sept. 2025 */
+  --type-date-family:   var(--font-sans);
+  --type-date-size:     var(--text-xs);
+  --type-date-weight:   var(--weight-regular);
+  --type-date-tracking: var(--tracking-normal);
+
+  /* ============================================================
+     SPACING TOKENS (8px base grid)
+     ============================================================ */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ============================================================
+     BORDER TOKENS
+     ============================================================ */
+  --border-thin:   1px solid var(--ink);
+  --border-light:  1px solid var(--light);
+  --border-none:   none;
+
+  /* Corner radii */
+  --radius-none:  0px;
+  --radius-pill:  999px;   /* Fully rounded buttons */
+  --radius-sm:    4px;     /* Subtle rounding (rare) */
+
+  /* ============================================================
+     SCREEN CANVAS
+     ============================================================ */
+  --screen-width:  400px;
+  --screen-height: 300px;
+  --screen-bg:     var(--paper);
+}
+
+/* ============================================================
+   BASE ELEMENT STYLES
+   ============================================================ */
+.watcher-screen {
+  width: var(--screen-width);
+  height: var(--screen-height);
+  background: var(--screen-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Semantic heading helpers */
+.w-label {
+  font-family: var(--type-label-family);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: var(--type-label-transform);
+}
+
+.w-status {
+  font-family: var(--type-status-family);
+  font-size: var(--type-status-size);
+  font-weight: var(--type-status-weight);
+}
+
+.w-body {
+  font-family: var(--type-body-family);
+  font-size: var(--type-body-size);
+  font-weight: var(--type-body-weight);
+  line-height: var(--type-body-leading);
+}
+
+.w-date {
+  font-family: var(--type-date-family);
+  font-size: var(--type-date-size);
+  letter-spacing: var(--type-date-tracking);
+}
+
+/* Pill button */
+.w-btn {
+  font-family: var(--type-label-family);
+  font-size: var(--type-label-size);
+  font-weight: var(--type-label-weight);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  background: var(--color-btn-bg);
+  color: var(--color-btn-fg);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-pill);
+  padding: 4px 14px;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.w-btn--ghost {
+  background: var(--color-btn-bg-ghost);
+  color: var(--color-btn-fg-ghost);
+}

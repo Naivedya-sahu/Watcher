@@ -17,4 +17,4 @@ set confirm off
 set confirm on
 
 # Load application symbols
-file D:/Development/Personal/Watcher/v8/build/bootloader/bootloader.elf
+file C:/Users/NAVY/Documents/Watcher/build/bootloader/bootloader.elf

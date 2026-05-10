@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0;padding:0;box-sizing:border-box; }
+body { background:#fff; padding:20px; display:flex; flex-direction:column; gap:16px; }
+/* 7-segment digit using CSS — faithful to SVG geometry */
+.seg-display { display:flex; gap:6px; align-items:center; }
+.digit { position:relative; width:28px; height:52px; }
+.seg { position:absolute; background:#E6E6E6; transition: background 0.1s; }
+.seg.on { background: #171717; }
+/* Horizontal segs */
+.seg-top    { top:0;    left:4px;  width:20px; height:4px; clip-path:polygon(2px 0,calc(100% - 2px) 0,100% 2px,calc(100% - 2px) 100%,2px 100%,0 2px); }
+.seg-mid    { top:24px; left:4px;  width:20px; height:4px; clip-path:polygon(2px 0,calc(100% - 2px) 0,100% 2px,calc(100% - 2px) 100%,2px 100%,0 2px); }
+.seg-bot    { top:48px; left:4px;  width:20px; height:4px; clip-path:polygon(2px 0,calc(100% - 2px) 0,100% 2px,calc(100% - 2px) 100%,2px 100%,0 2px); }
+/* Vertical segs */
+.seg-tl { top:4px;  left:0;  width:4px; height:20px; clip-path:polygon(0 2px,2px 0,100% 0,100% 100%,2px 100%,0 calc(100% - 2px)); }
+.seg-tr { top:4px;  right:0; width:4px; height:20px; clip-path:polygon(0 0,100% 2px,100% calc(100% - 2px),0 100%); }
+.seg-bl { top:28px; left:0;  width:4px; height:20px; clip-path:polygon(0 2px,2px 0,100% 0,100% 100%,2px 100%,0 calc(100% - 2px)); }
+.seg-br { top:28px; right:0; width:4px; height:20px; clip-path:polygon(0 0,100% 2px,100% calc(100% - 2px),0 100%); }
+.colon { display:flex;flex-direction:column;justify-content:space-around;padding:8px 0;gap:10px; }
+.colon-dot { width:5px;height:5px;background:#171717;border-radius:0; }
+.row { display:flex;gap:16px;align-items:center; }
+.label { font-family:'Share Tech Mono', monospace,monospace; font-size:8px; color:#aaa; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:8px; }
+</style></head><body>
+<div>
+  <div class="label">7-segment digits — active</div>
+  <div class="seg-display" id="time-display"></div>
+</div>
+<div>
+  <div class="label">ghost (inactive segments)</div>
+  <div class="seg-display" id="ghost-display"></div>
+</div>
+<script>
+// Segment patterns for 0–9: [top,tl,tr,mid,bl,br,bot]
+const SEGS = {
+  '0':[1,1,1,0,1,1,1], '1':[0,0,1,0,0,1,0], '2':[1,0,1,1,1,0,1],
+  '3':[1,0,1,1,0,1,1], '4':[0,1,1,1,0,1,0], '5':[1,1,0,1,0,1,1],
+  '6':[1,1,0,1,1,1,1], '7':[1,0,1,0,0,1,0], '8':[1,1,1,1,1,1,1],
+  '9':[1,1,1,1,0,1,1],
+};
+const NAMES = ['seg-top','seg-tl','seg-tr','seg-mid','seg-bl','seg-br','seg-bot'];
+
+function makeDigit(ch, ghost=false) {
+  const d = document.createElement('div');
+  d.className = 'digit';
+  NAMES.forEach((n,i) => {
+    const s = document.createElement('div');
+    s.className = 'seg ' + n;
+    if (!ghost && SEGS[ch] && SEGS[ch][i]) s.classList.add('on');
+    d.appendChild(s);
+  });
+  return d;
+}
+
+function makeColon() {
+  const c = document.createElement('div');
+  c.className = 'colon';
+  c.innerHTML = '<div class="colon-dot"></div><div class="colon-dot"></div>';
+  return c;
+}
+
+function buildDisplay(id, str, ghost=false) {
+  const el = document.getElementById(id);
+  str.split('').forEach(ch => {
+    if (ch === ':') el.appendChild(makeColon());
+    else el.appendChild(makeDigit(ch, ghost));
+  });
+}
+
+buildDisplay('time-display', '18:36');
+buildDisplay('ghost-display', '88:88', true);
+</script>
+</body></html>

@@ -1,2 +1,2 @@
-source D:/Development/Personal/Watcher/v8/build/bootloader/gdbinit/symbols
-source D:/Development/Personal/Watcher/v8/build/bootloader/gdbinit/connect
+source C:/Users/NAVY/Documents/Watcher/build/bootloader/gdbinit/symbols
+source C:/Users/NAVY/Documents/Watcher/build/bootloader/gdbinit/connect

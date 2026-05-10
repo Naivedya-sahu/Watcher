@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0;padding:0;box-sizing:border-box; }
+body { background:#f0f0f0; padding:16px; font-family:'Share Tech Mono',monospace; }
+
+/* 400×300 screen exact size */
+.screen {
+  width:400px; height:300px; background:#fff;
+  position:relative; overflow:hidden; outline:1px solid #ccc;
+}
+/* Dot border — same language as Pomodoro */
+#day-dots { position:absolute; top:0;left:0;width:400px;height:300px;pointer-events:none; }
+/* Inner content at (59,49) 282×202 — same inset as Pomodoro */
+.inner {
+  position:absolute; left:59px; top:49px; width:282px; height:202px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+}
+.big-time {
+  font-size:64px; letter-spacing:0.06em; color:#111; line-height:1;
+}
+.day-label {
+  font-size:10px; color:#999; letter-spacing:0.1em; text-transform:uppercase;
+}
+.date-str {
+  font-size:10px; color:#aaa; letter-spacing:0.04em; margin-top:2px;
+}
+.pct-bar {
+  display:flex; gap:2px; align-items:center; margin-top:4px;
+}
+.pct-sq { width:8px; height:8px; }
+.pct-sq.on  { background:#111; }
+.pct-sq.off { background:#E6E6E6; }
+.pct-label { font-size:8px; color:#bbb; margin-left:4px; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <svg id="day-dots" viewBox="0 0 400 300"></svg>
+  <div class="inner">
+    <div class="big-time" id="big-time">--:--</div>
+    <div class="date-str" id="date-str">———</div>
+    <div class="pct-bar" id="pct-bar"></div>
+    <div class="day-label" id="day-label">of day</div>
+  </div>
+</div>
+<script>
+// Same dot border geometry as Pomodoro (58 squares, clockwise)
+const svg = document.getElementById('day-dots');
+const positions = [];
+for (let i=0;i<18;i++) positions.push([59+i*16, 49]);
+for (let i=0;i<11;i++) positions.push([331, 65+i*16]);
+for (let i=17;i>=0;i--) positions.push([59+i*16, 241]);
+for (let i=10;i>=0;i--) positions.push([59, 65+i*16]);
+// 58 total; fill proportional to time-of-day (0:00→midnight = 0%, 23:59→midnight = ~100%)
+
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const WDAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const ORD = n => n+(n%10===1&&n!==11?'st':n%10===2&&n!==12?'nd':n%10===3&&n!==13?'rd':'th');
+
+let dots = [];
+positions.forEach(([x,y]) => {
+  const r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  r.setAttribute('x',x); r.setAttribute('y',y);
+  r.setAttribute('width','10'); r.setAttribute('height','10');
+  r.setAttribute('fill','#E6E6E6');
+  svg.appendChild(r);
+  dots.push(r);
+});
+
+// Mini 12-square pct bar
+const bar = document.getElementById('pct-bar');
+const barSqs = [];
+for (let i=0;i<12;i++) {
+  const s = document.createElement('div'); s.className='pct-sq off';
+  bar.appendChild(s); barSqs.push(s);
+}
+
+function update() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+  const totalSecs = 24*3600;
+  const curSecs = h*3600 + m*60 + s;
+  const pct = curSecs / totalSecs;
+  const filled = Math.round(pct * 58);
+
+  // Update dot border
+  dots.forEach((r,i) => r.setAttribute('fill', i < filled ? '#111' : '#E6E6E6'));
+
+  // Update time
+  document.getElementById('big-time').textContent =
+    String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+
+  // Update date
+  document.getElementById('date-str').textContent =
+    `${WDAYS[now.getDay()]}, ${ORD(now.getDate())} ${MONTHS[now.getMonth()].slice(0,3)}. ${now.getFullYear()}`;
+
+  // Update mini bar (12 squares = each = 2h)
+  const barFilled = Math.round(pct * 12);
+  barSqs.forEach((s,i) => s.className = 'pct-sq '+(i<barFilled?'on':'off'));
+
+  // Pct label
+  document.getElementById('day-label').textContent = Math.round(pct*100)+'% of day';
+}
+
+setInterval(update, 1000); update();
+</script>
+</body></html>

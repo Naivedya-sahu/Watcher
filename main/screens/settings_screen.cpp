@@ -1,7 +1,7 @@
-// settings_screen.cpp — device config with encoder navigation
-// 8 rows matching HTML settings.html exactly:
-//   0 WIFI · 1 SIGNAL · 2 IP · 3 THEME · 4 FIRMWARE · 5 UPDATE · 6 TIME ZONE · 7 SLEEP
-// BTN_1/2 = prev/next row, BTN_3 = select/toggle, encoder = scroll/click.
+// settings_screen.cpp — device config display (read-only on v8 hardware)
+// 8 rows: 0 WIFI · 1 SIGNAL · 2 IP · 3 THEME · 4 FIRMWARE · 5 UPDATE · 6 TIME ZONE · 7 SLEEP
+// Input: encoder scroll/click (sim only — ENABLE_INPUTS=0 in v8)
+// Config changes: use web console at http://watcher.local
 
 #include "settings_screen.h"
 #include "screen_mgr.h"
@@ -99,10 +99,10 @@ static void get_row_val(int idx, char *buf, size_t cap) {
         case 5:
             if (ota_is_running())
                 snprintf(buf, cap, "UPDATING...");
-            else if (g_cfg.ota_url[0])
-                snprintf(buf, cap, "PRESS SELECT");
+            else if (ota_is_armed())
+                snprintf(buf, cap, "ARMED");
             else
-                snprintf(buf, cap, "NO URL SET");
+                snprintf(buf, cap, "IDLE");
             break;
 
         case 6:
@@ -158,9 +158,9 @@ static void settings_render(fb_t *fb) {
 
     // ── Footer — split left/right ──────────────────────────────
     fb_draw_hline(fb, 0, 278, FB_W, FB_BLACK);
-    fb_draw_str(fb, 8, 284, "BTN1/2 NAV", FB_BLACK);
-    int selw = (int)strlen("BTN3 SELECT") * FONT_W;
-    fb_draw_str(fb, 392 - selw, 284, "BTN3 SELECT", FB_BLACK);
+    fb_draw_str(fb, 8, 284, "watcher.local", FB_BLACK);
+    int selw = (int)strlen("WEB CONSOLE") * FONT_W;
+    fb_draw_str(fb, 392 - selw, 284, "WEB CONSOLE", FB_BLACK);
 }
 
 static void settings_select(int row) {
@@ -187,9 +187,9 @@ static void settings_select(int row) {
             cfg_save();
             screen_force_render();
             break;
-        case 5: // UPDATE — kick off OTA if URL is configured
+        case 5: // UPDATE — arm push OTA; host then POSTs binary to /api/ota/upload
             if (!ota_trigger(NULL))
-                ESP_LOGW(TAG, "OTA not triggered — set ota_url via web portal");
+                ESP_LOGW(TAG, "OTA busy — already armed or running");
             screen_force_render();
             break;
         default:

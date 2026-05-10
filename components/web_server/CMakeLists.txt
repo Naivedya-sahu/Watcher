@@ -12,4 +12,8 @@ idf_component_register(
         esp_http_server
         spiffs
         app_update
+        esp_wifi
+        esp_netif
+        esp_timer
+        heap
 )

@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Watcher — Device UI Kit</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<template id="__bundler_thumbnail" data-bg-color="#1a1a1a">
+  <svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
+    <rect x="30" y="10" width="340" height="260" rx="12" fill="#2a2a2a"/>
+    <rect x="50" y="30" width="300" height="200" fill="#ffffff"/>
+    <rect x="90" y="90" width="18" height="7" rx="1" fill="#111"/>
+    <rect x="80" y="100" width="7" height="28" rx="1" fill="#111"/>
+    <rect x="101" y="100" width="7" height="28" rx="1" fill="#111"/>
+    <rect x="90" y="130" width="18" height="7" rx="1" fill="#111"/>
+    <rect x="80" y="139" width="7" height="28" rx="1" fill="#111"/>
+    <rect x="101" y="139" width="7" height="28" rx="1" fill="#111"/>
+    <rect x="90" y="169" width="18" height="7" rx="1" fill="#111"/>
+    <rect x="122" y="112" width="7" height="7" fill="#111"/>
+    <rect x="122" y="148" width="7" height="7" fill="#111"/>
+    <rect x="140" y="90" width="18" height="7" rx="1" fill="#111"/>
+    <rect x="138" y="100" width="7" height="28" rx="1" fill="#111"/>
+    <rect x="151" y="100" width="7" height="28" rx="1" fill="#111"/>
+    <rect x="140" y="130" width="18" height="7" rx="1" fill="#111"/>
+    <rect x="151" y="139" width="7" height="28" rx="1" fill="#111"/>
+    <rect x="140" y="169" width="18" height="7" rx="1" fill="#111"/>
+    <rect x="50" y="30" width="8" height="8" fill="#000"/><rect x="62" y="30" width="8" height="8" fill="#000"/>
+    <rect x="74" y="30" width="8" height="8" fill="#000"/><rect x="86" y="30" width="8" height="8" fill="#000"/>
+    <rect x="98" y="30" width="8" height="8" fill="#E6E6E6"/><rect x="110" y="30" width="8" height="8" fill="#E6E6E6"/>
+    <rect x="135" y="278" width="28" height="6" rx="3" fill="#fff"/>
+    <rect x="169" y="278" width="28" height="6" rx="3" fill="#444"/>
+    <rect x="203" y="278" width="28" height="6" rx="3" fill="#444"/>
+  </svg>
+</template>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#1a1a1a; min-height:100vh;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font-family:'Share Tech Mono', monospace; gap:16px; padding:20px;
+}
+.device {
+  background:#2a2a2a; border-radius:14px; padding:20px;
+  box-shadow: 0 10px 48px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06);
+  position:relative;
+}
+.device::before {
+  content:''; position:absolute; top:9px; left:50%; transform:translateX(-50%);
+  width:36px; height:3px; background:#3a3a3a; border-radius:2px;
+}
+.screen { width:400px; height:300px; background:#fff; overflow:hidden; position:relative; }
+
+.nav-bar { display:flex; gap:5px; flex-wrap:wrap; justify-content:center; max-width:480px; }
+.nav-pill {
+  font-size:8px; letter-spacing:0.1em; text-transform:uppercase;
+  padding:5px 10px; border-radius:999px; border:1px solid #444;
+  color:#666; background:transparent; cursor:pointer; transition:all 0.12s;
+}
+.nav-pill:hover { border-color:#888; color:#ccc; }
+.nav-pill.active { background:#fff; color:#000; border-color:#fff; }
+
+/* ── SCREENS ── */
+.s { width:400px; height:300px; position:absolute; top:0; left:0; display:none; background:#fff; }
+.s.active { display:block; }
+.s.dark-s { background:#000; color:#fff; }
+
+/* ── SHARED ── */
+.mono { font-family:'Share Tech Mono',monospace; }
+
+/* ── DAY CLOCK ── */
+#screen-dayclock { display:none; align-items:center; justify-content:center; }
+#screen-dayclock.active { display:flex; }
+#dc-svg { position:absolute; top:0;left:0;width:400px;height:300px;pointer-events:none; }
+.dc-inner {
+  position:absolute; left:59px; top:49px; width:282px; height:202px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+}
+.dc-time { font-size:62px; letter-spacing:0.06em; color:#111; line-height:1; }
+.dc-date { font-size:10px; color:#aaa; letter-spacing:0.04em; }
+.dc-pct  { font-size:9px; color:#ccc; letter-spacing:0.1em; text-transform:uppercase; }
+.dc-bar { display:flex; gap:2px; }
+.dc-sq { width:9px; height:9px; }
+.dc-sq.on { background:#111; } .dc-sq.off { background:#E6E6E6; }
+
+/* ── DIGITAL CLOCK ── */
+#screen-digital { display:none; align-items:center; justify-content:center; flex-direction:column; gap:10px; }
+#screen-digital.active { display:flex; }
+.dig-wrap { display:flex; align-items:center; gap:3px; }
+.digit { position:relative; width:62px; height:110px; flex-shrink:0; }
+.seg { position:absolute; }
+.seg.on { background:#111; } .seg.off { background:#DEDEDE; }
+.sh { left:8px; width:46px; height:9px; clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 50%,calc(100% - 6px) 100%,6px 100%,0 50%); }
+.sv { width:9px; height:41px; clip-path:polygon(0 5px,50% 0,100% 0,100% 100%,50% 100%,0 calc(100% - 5px)); }
+.seg-top { top:0; } .seg-mid { top:50px; } .seg-bot { top:101px; }
+.seg-tl { left:0; top:9px; } .seg-tr { right:0; top:9px; } .seg-bl { left:0; top:60px; } .seg-br { right:0; top:60px; }
+.colon-wrap { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:16px; width:18px; padding-bottom:6px; }
+.colon-dot { width:9px; height:9px; background:#111; }
+.dig-date { font-size:11px; color:#999; letter-spacing:0.04em; }
+
+/* ── POMODORO ── */
+#screen-pomo { display:none; }
+#screen-pomo.active { display:block; }
+#pomo-svg { position:absolute; top:0;left:0;width:400px;height:300px; }
+.pomo-inner {
+  position:absolute; left:59px; top:49px; width:282px; height:202px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+}
+.pomo-time { font-size:52px; color:#111; letter-spacing:0.06em; line-height:1; }
+.pomo-sub  { font-size:10px; color:#888; letter-spacing:0.14em; text-transform:uppercase; }
+.pomo-btns { position:absolute; bottom:10px; left:0;right:0; display:flex; align-items:center; padding:0 18px; }
+.pomo-start { width:36px;height:36px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center; }
+.pmodes { display:flex;gap:5px;flex:1;justify-content:center; }
+.pmode { font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:0.14em;text-transform:uppercase;
+  height:24px;border-radius:12px;padding:0 12px;border:1px solid #000;cursor:pointer;background:#fff;color:#000;
+  display:inline-flex;align-items:center; }
+.pmode.active { background:#000;color:#fff; }
+.pomo-stop { width:13px;height:13px;background:#000;border:none;cursor:pointer; }
+
+/* ── CALENDAR ── */
+.cal-wrap { padding:16px 22px 12px; width:400px; height:300px; }
+.cal-wrap.dk { background:#000;color:#fff; }
+.cal-hdr { display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid currentColor;margin-bottom:8px; }
+.cal-title { font-size:12px;white-space:nowrap;letter-spacing:0.04em; }
+.cal-nav { font-size:18px;cursor:pointer;padding:0 6px;user-select:none;line-height:1; }
+.cal-days { display:grid;grid-template-columns:repeat(7,1fr);text-align:center;margin-bottom:4px; }
+.cal-days span { font-size:9px;opacity:0.4;text-transform:uppercase;letter-spacing:0.04em;padding:3px 0; }
+.cal-grid { display:grid;grid-template-columns:repeat(7,1fr);text-align:center; }
+.cal-cell { font-size:12px;padding:5px 0;cursor:pointer;line-height:1.2; }
+.cal-cell:hover { opacity:0.6; }
+.cal-cell.today { background:#000;color:#fff; }
+.cal-wrap.dk .cal-cell.today { background:#fff;color:#000; }
+.cal-cell.other { opacity:0.2; }
+
+/* ── TASKS ── */
+.tasks-wrap { padding:14px 18px; width:400px; height:300px; }
+.tasks-wrap.dk { background:#000;color:#fff; }
+.tl-hdr { font-size:10px;letter-spacing:0.1em;text-transform:uppercase;border-bottom:1px solid currentColor;padding-bottom:6px;margin-bottom:10px;opacity:0.6; }
+.task-item { display:flex;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:1px solid; }
+.tasks-wrap:not(.dk) .task-item { border-color:#e8e8e8; }
+.tasks-wrap.dk .task-item { border-color:#222; }
+.task-item:last-child { border-bottom:none; }
+.t-cb { width:11px;height:11px;border:1.5px solid currentColor;flex-shrink:0;margin-top:2px;cursor:pointer; }
+.tasks-wrap:not(.dk) .t-cb.checked { background:#000; }
+.tasks-wrap.dk .t-cb.checked { background:#fff; }
+.t-txt { font-size:12px;line-height:1.35; }
+.t-txt.done { text-decoration:line-through;opacity:0.3; }
+
+/* ── OTA SCREEN ── */
+.ota-wrap { padding:20px 24px; width:400px; height:300px; display:flex;flex-direction:column;gap:12px; }
+.ota-hdr { font-size:10px;letter-spacing:0.1em;text-transform:uppercase;border-bottom:1px solid #000;padding-bottom:8px; }
+.ota-row { display:flex;justify-content:space-between;align-items:center;font-size:11px; }
+.ota-val { color:#888; }
+.ota-bar-wrap { margin-top:4px; }
+.ota-bar-label { font-size:8px;color:#aaa;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px; }
+.ota-bar { display:flex;gap:3px;flex-wrap:wrap; }
+.ota-sq { width:10px;height:10px; }
+.ota-sq.on { background:#000; } .ota-sq.off { background:#E6E6E6; }
+.ota-status { font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.12em;margin-top:8px; }
+
+/* ── OBSIDIAN SCREEN ── */
+.obs-wrap { padding:14px 18px; width:400px; height:300px; }
+.obs-hdr { font-size:10px;letter-spacing:0.1em;text-transform:uppercase;border-bottom:1px solid #000;padding-bottom:6px;margin-bottom:8px; }
+.obs-row { display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid #eee;font-size:11px; }
+.obs-row:last-child { border-bottom:none; }
+.obs-tag { font-size:7px;letter-spacing:0.1em;text-transform:uppercase;border:1px solid #000;padding:1px 5px;flex-shrink:0; }
+.obs-sync { display:flex;align-items:center;gap:6px;margin-top:8px;font-size:9px;color:#aaa; }
+.obs-dot { width:6px;height:6px;background:#000; }
+</style>
+</head>
+<body>
+<div class="device">
+  <div class="screen">
+
+    <!-- DAY CLOCK -->
+    <div class="s" id="screen-dayclock">
+      <svg id="dc-svg" viewBox="0 0 400 300"></svg>
+      <div class="dc-inner">
+        <div class="dc-time" id="dc-time">--:--</div>
+        <div class="dc-date" id="dc-date">———</div>
+        <div class="dc-bar" id="dc-bar"></div>
+        <div class="dc-pct"  id="dc-pct">—% of day</div>
+      </div>
+      
+
+    <!-- DIGITAL CLOCK -->
+    <div class="s" id="screen-digital">
+      <div class="dig-wrap" id="dig-display"></div>
+      <div class="dig-date" id="dig-date"></div>
+      
+
+    <!-- POMODORO -->
+    <div class="s" id="screen-pomo">
+      <svg id="pomo-svg" viewBox="0 0 400 300" style="position:absolute;top:0;left:0;width:400px;height:300px;"></svg>
+      <div class="pomo-inner">
+        <div class="pomo-time" id="pomo-time">25:00</div>
+        <div class="pomo-sub" id="pomo-sub">Focus</div>
+      </div>
+      
+    </div>
+
+    <!-- CALENDAR LIGHT -->
+    <div class="s" id="screen-cal">
+      <div class="cal-wrap">
+        <div class="cal-hdr">
+          <span class="cal-nav" onclick="calNav(-1,'cal')">‹</span>
+          <span class="cal-title" id="cal-title-cal">April 2026</span>
+          <span style="display:flex;align-items:center;gap:6px">
+            
+            <span class="cal-nav" onclick="calNav(1,'cal')">›</span>
+          </span>
+        </div>
+        <div class="cal-days"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+        <div class="cal-grid" id="cal-grid-cal"></div>
+      </div>
+    </div>
+
+    <!-- CALENDAR DARK -->
+    <div class="s dark-s" id="screen-cal-dark">
+      <div class="cal-wrap dk">
+        <div class="cal-hdr">
+          <span class="cal-nav" onclick="calNav(-1,'cal-dark')">‹</span>
+          <span class="cal-title" id="cal-title-cal-dark">April 2026</span>
+          <span style="display:flex;align-items:center;gap:6px">
+            
+            <span class="cal-nav" onclick="calNav(1,'cal-dark')">›</span>
+          </span>
+        </div>
+        <div class="cal-days"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+        <div class="cal-grid" id="cal-grid-cal-dark"></div>
+      </div>
+    </div>
+
+    <!-- TASKS LIGHT -->
+    <div class="s" id="screen-tasks">
+      <div class="tasks-wrap">
+        <div class="tl-hdr">Tasks</div>
+        <div id="tl-light"></div>
+      </div>
+    </div>
+
+    <!-- TASKS DARK -->
+    <div class="s dark-s" id="screen-tasks-dark">
+      <div class="tasks-wrap dk">
+        <div class="tl-hdr">Tasks</div>
+        <div id="tl-dark"></div>
+      </div>
+    </div>
+
+    <!-- OTA -->
+    <div class="s" id="screen-ota">
+      <div class="ota-wrap">
+        <div class="ota-hdr">Firmware Update</div>
+        <div class="ota-row"><span>Current</span><span class="ota-val">v1.2.4</span></div>
+        <div class="ota-row"><span>Available</span><span class="ota-val">v1.3.0</span></div>
+        <div class="ota-row"><span>Size</span><span class="ota-val">284 KB</span></div>
+        <div class="ota-bar-wrap">
+          <div class="ota-bar-label">Downloading</div>
+          <div class="ota-bar" id="ota-bar"></div>
+        </div>
+        <div class="ota-status" id="ota-status">Fetching…</div>
+      </div>
+    </div>
+
+    <!-- OBSIDIAN -->
+    <div class="s" id="screen-obsidian">
+      <div class="obs-wrap">
+        <div class="obs-hdr">Obsidian Sync</div>
+        <div class="obs-row"><span class="obs-tag">task</span><span>Review PR #42</span></div>
+        <div class="obs-row"><span class="obs-tag">note</span><span>Weekly standup notes</span></div>
+        <div class="obs-row"><span class="obs-tag">task</span><span>Update vault index</span></div>
+        <div class="obs-row"><span class="obs-tag">idea</span><span>Watcher firmware v2 plan</span></div>
+        <div class="obs-row"><span class="obs-tag">note</span><span>ESP32 deep sleep modes</span></div>
+        <div class="obs-sync">
+          <div class="obs-dot"></div>
+          <span id="obs-sync-label">Last sync: just now</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- .screen -->
+</div><!-- .device -->
+
+<div class="nav-bar">
+  <button class="nav-pill" onclick="goTo('dayclock')">Day Clock</button>
+  <button class="nav-pill" onclick="goTo('digital')">Digital</button>
+  <button class="nav-pill" onclick="goTo('pomo')">Pomodoro</button>
+  <button class="nav-pill" onclick="goTo('cal')">Calendar</button>
+  <button class="nav-pill" onclick="goTo('cal-dark')">Calendar ◼</button>
+  <button class="nav-pill" onclick="goTo('tasks')">Tasks</button>
+  <button class="nav-pill" onclick="goTo('tasks-dark')">Tasks ◼</button>
+  <button class="nav-pill" onclick="goTo('ota')">OTA</button>
+  <button class="nav-pill" onclick="goTo('obsidian')">Obsidian</button>
+</div>
+
+<script>
+
+// ── Navigation ──────────────────────────────────────
+const SCREENS = ['dayclock','digital','pomo','cal','cal-dark','tasks','tasks-dark','ota','obsidian'];
+let current = localStorage.getItem('watcher-screen') || 'dayclock';
+
+function goTo(name) {
+  current = name; localStorage.setItem('watcher-screen', name);
+  SCREENS.forEach(s => document.getElementById('screen-'+s).classList.toggle('active', s===name));
+  document.querySelectorAll('.nav-pill').forEach((btn,i) => btn.classList.toggle('active', SCREENS[i]===name));
+  
+}
+
+// ── Shared helpers ───────────────────────────────────
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const WDAYS  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const ORD = n => n+(n%10===1&&n!==11?'st':n%10===2&&n!==12?'nd':n%10===3&&n!==13?'rd':'th');
+
+// ── Day Clock ────────────────────────────────────────
+const dcSvg = document.getElementById('dc-svg');
+const dcDots = [];
+const dcPos = [];
+for(let i=0;i<18;i++) dcPos.push([59+i*16,49]);
+for(let i=0;i<11;i++) dcPos.push([331,65+i*16]);
+for(let i=17;i>=0;i--) dcPos.push([59+i*16,241]);
+for(let i=10;i>=0;i--) dcPos.push([59,65+i*16]);
+dcPos.forEach(([x,y])=>{
+  const r=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width','10');r.setAttribute('height','10');
+  r.setAttribute('fill','#E6E6E6');
+  dcSvg.appendChild(r); dcDots.push(r);
+});
+const dcBar = document.getElementById('dc-bar');
+const dcSqs = [];
+for(let i=0;i<12;i++){const s=document.createElement('div');s.className='dc-sq off';dcBar.appendChild(s);dcSqs.push(s);}
+
+function updateDayClock(){
+  const n=new Date();
+  const h=n.getHours(),m=n.getMinutes(),s=n.getSeconds();
+  const pct=(h*3600+m*60+s)/(24*3600);
+  const filled=Math.round(pct*58);
+  dcDots.forEach((r,i)=>r.setAttribute('fill',i<filled?'#111':'#E6E6E6'));
+  document.getElementById('dc-time').textContent=String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  document.getElementById('dc-date').textContent=WDAYS[n.getDay()]+', '+ORD(n.getDate())+' '+MONTHS[n.getMonth()].slice(0,3)+'. '+n.getFullYear();
+  dcSqs.forEach((sq,i)=>sq.className='dc-sq '+(i<Math.round(pct*12)?'on':'off'));
+  document.getElementById('dc-pct').textContent=Math.round(pct*100)+'% of day';
+}
+setInterval(updateDayClock,1000); updateDayClock();
+
+// ── Digital Clock ────────────────────────────────────
+const SEG_MAP={'0':[1,1,1,0,1,1,1],'1':[0,0,1,0,0,1,0],'2':[1,0,1,1,1,0,1],
+  '3':[1,0,1,1,0,1,1],'4':[0,1,1,1,0,1,0],'5':[1,1,0,1,0,1,1],
+  '6':[1,1,0,1,1,1,1],'7':[1,0,1,0,0,1,0],'8':[1,1,1,1,1,1,1],'9':[1,1,1,1,0,1,1]};
+const SEG_NAMES=[['seg-top','sh'],['seg-tl','sv'],['seg-tr','sv'],['seg-mid','sh'],['seg-bl','sv'],['seg-br','sv'],['seg-bot','sh']];
+
+function makeDigEl(ch){
+  const d=document.createElement('div');d.className='digit';
+  (SEG_MAP[ch]||[0,0,0,0,0,0,0]).forEach((on,i)=>{
+    const s=document.createElement('div');
+    s.className='seg '+SEG_NAMES[i][1]+' '+SEG_NAMES[i][0]+' '+(on?'on':'off');
+    d.appendChild(s);
+  });
+  return d;
+}
+function makeColEl(){
+  const c=document.createElement('div');c.className='colon-wrap';
+  c.innerHTML='<div class="colon-dot"></div><div class="colon-dot"></div>';
+  return c;
+}
+function updateDigital(){
+  const n=new Date();
+  const str=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+  const disp=document.getElementById('dig-display');disp.innerHTML='';
+  str.split('').forEach(ch=>disp.appendChild(ch===':'?makeColEl():makeDigEl(ch)));
+  document.getElementById('dig-date').textContent=WDAYS[n.getDay()]+', '+ORD(n.getDate())+' '+MONTHS[n.getMonth()].slice(0,3)+'. '+n.getFullYear();
+}
+setInterval(updateDigital,1000); updateDigital();
+
+// ── Pomodoro ─────────────────────────────────────────
+const pomoPos=[];
+for(let i=0;i<18;i++) pomoPos.push([59+i*16,49]);
+for(let i=0;i<11;i++) pomoPos.push([331,65+i*16]);
+for(let i=17;i>=0;i--) pomoPos.push([59+i*16,241]);
+for(let i=10;i>=0;i--) pomoPos.push([59,65+i*16]);
+let pomoDots=[];
+
+function buildPomoDots(){
+  const svg=document.getElementById('pomo-svg'); svg.innerHTML=''; pomoDots=[];
+  pomoPos.forEach(([x,y])=>{
+    const r=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    r.setAttribute('x',x);r.setAttribute('y',y);r.setAttribute('width','10');r.setAttribute('height','10');
+    r.setAttribute('fill','#E6E6E6');svg.appendChild(r);pomoDots.push(r);
+  });
+}
+buildPomoDots();
+
+let pomoSec=25*60,pomoTotal=25*60,pomoRunning=false,pomoInterval=null,pomoMode='focus';
+function updatePomo(){
+  const m=String(Math.floor(pomoSec/60)).padStart(2,'0'),s=String(pomoSec%60).padStart(2,'0');
+  document.getElementById('pomo-time').textContent=m+':'+s;
+  const f=Math.round((pomoSec/pomoTotal)*58);
+  pomoDots.forEach((r,i)=>r.setAttribute('fill',i<f?'#000':'#E6E6E6'));
+}
+function togglePomo(){
+  const btn=document.getElementById('btn-start');
+  if(pomoRunning){
+    clearInterval(pomoInterval);pomoRunning=false;
+    btn.innerHTML='<svg width="18" height="18" viewBox="0 0 18 18"><path d="M4 2.5L14.5 9L4 15.5V2.5Z" fill="black"/></svg>';
+  } else {
+    pomoRunning=true;
+    btn.innerHTML='<svg width="18" height="18" viewBox="0 0 18 18"><rect x="3" y="2" width="4" height="14" fill="black"/><rect x="11" y="2" width="4" height="14" fill="black"/></svg>';
+    pomoInterval=setInterval(()=>{if(pomoSec>0){pomoSec--;updatePomo();}else{clearInterval(pomoInterval);pomoRunning=false;btn.innerHTML='<svg width="18" height="18" viewBox="0 0 18 18"><path d="M4 2.5L14.5 9L4 15.5V2.5Z" fill="black"/></svg>';}},1000);
+  }
+}
+function resetPomo(){clearInterval(pomoInterval);pomoRunning=false;pomoSec=pomoTotal;updatePomo();document.getElementById('btn-start').innerHTML='<svg width="18" height="18" viewBox="0 0 18 18"><path d="M4 2.5L14.5 9L4 15.5V2.5Z" fill="black"/></svg>';}
+function setMode(mode,mins){
+  clearInterval(pomoInterval);pomoRunning=false;pomoMode=mode;pomoTotal=mins*60;pomoSec=pomoTotal;
+  document.getElementById('pomo-sub').textContent=mode==='focus'?'Focus':mode==='break'?'Short Break':'Long Break';
+  document.getElementById('btn-start').innerHTML='<svg width="18" height="18" viewBox="0 0 18 18"><path d="M4 2.5L14.5 9L4 15.5V2.5Z" fill="black"/></svg>';
+  ['focus','break','long'].forEach(m=>document.getElementById('pm-'+m).classList.toggle('active',m===mode));
+  updatePomo();
+}
+updatePomo();
+
+// ── Calendar ─────────────────────────────────────────
+const calState={'cal':{y:2026,m:3},'cal-dark':{y:2026,m:3}};
+function renderCal(id){
+  const st=calState[id];
+  document.getElementById('cal-title-'+id).textContent=MONTHS[st.m]+' '+st.y;
+  const grid=document.getElementById('cal-grid-'+id);grid.innerHTML='';
+  const first=new Date(st.y,st.m,1).getDay(),days=new Date(st.y,st.m+1,0).getDate();
+  const td=new Date(),isToday=d=>d===td.getDate()&&st.m===td.getMonth()&&st.y===td.getFullYear();
+  const prev=new Date(st.y,st.m,0).getDate();
+  for(let i=0;i<first;i++){const c=document.createElement('div');c.className='cal-cell other';c.textContent=prev-first+1+i;grid.appendChild(c);}
+  for(let d=1;d<=days;d++){const c=document.createElement('div');c.className='cal-cell'+(isToday(d)?' today':'');c.textContent=d;grid.appendChild(c);}
+  const trail=(7-((first+days)%7))%7;
+  for(let i=1;i<=trail;i++){const c=document.createElement('div');c.className='cal-cell other';c.textContent=i;grid.appendChild(c);}
+}
+function calNav(dir,id){const s=calState[id];s.m+=dir;if(s.m>11){s.m=0;s.y++;}if(s.m<0){s.m=11;s.y--;}renderCal(id);}
+
+// ── Tasks ─────────────────────────────────────────────
+const TASKS=[
+  {text:'Write weekly review',done:true},{text:'Review pull requests',done:false},
+  {text:'Update Obsidian vault',done:false},{text:'Plan next sprint',done:false},
+  {text:'OTA firmware update',done:false},{text:'Lunch with team',done:false},
+];
+function renderTasks(id){
+  const el=document.getElementById('tl-'+id);el.innerHTML='';
+  TASKS.forEach(t=>{
+    const row=document.createElement('div');row.className='task-item';
+    const cb=document.createElement('div');cb.className='t-cb'+(t.done?' checked':'');
+    cb.onclick=()=>{t.done=!t.done;renderTasks('light');renderTasks('dark');};
+    const txt=document.createElement('div');txt.className='t-txt'+(t.done?' done':'');
+    txt.textContent=t.text;
+    row.appendChild(cb);row.appendChild(txt);el.appendChild(row);
+  });
+}
+
+// ── OTA Progress ──────────────────────────────────────
+const otaBar=document.getElementById('ota-bar');
+const otaSqs=[];
+for(let i=0;i<24;i++){const s=document.createElement('div');s.className='ota-sq off';otaBar.appendChild(s);otaSqs.push(s);}
+let otaProgress=0;
+function tickOTA(){
+  if(otaProgress<=24){
+    otaSqs.forEach((s,i)=>s.className='ota-sq '+(i<otaProgress?'on':'off'));
+    const pct=Math.round(otaProgress/24*100);
+    document.getElementById('ota-status').textContent=
+      otaProgress<24?'Downloading… '+pct+'%':'Installing… Complete ✓';
+    otaProgress++;
+  }
+}
+setInterval(tickOTA,400);
+
+// ── Init ──────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  renderCal('cal'); renderCal('cal-dark');
+  renderTasks('light'); renderTasks('dark');
+  goTo(current);
+});
+</script>
+</body></html>

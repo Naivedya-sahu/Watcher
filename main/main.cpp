@@ -451,6 +451,12 @@ static void main_task(void *arg) {
 #endif
     });
 
+    // Wire web console HW button + encoder simulation to the screen manager.
+    web_server_set_input_callbacks(
+        [](int id, int evt){ screen_mgr_button((btn_id_t)id, (btn_evt_t)evt); },
+        [](int delta)       { screen_mgr_encoder(delta); }
+    );
+
     web_server_start(&s_fb);
 
     ESP_LOGI(TAG, "Watcher v7.1 ready — %d screens | hw=%d",

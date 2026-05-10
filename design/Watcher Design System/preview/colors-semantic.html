@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0;padding:0;box-sizing:border-box; }
+body { background:#fff; font-family:'Share Tech Mono', monospace,monospace; padding:20px; }
+.row { display:flex; gap:8px; margin-bottom:10px; align-items:center; }
+.pill { height:28px; border-radius:14px; display:flex;align-items:center;padding:0 14px;font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase; }
+.btn-filled { background:#000;color:#fff;border:1px solid #000; }
+.btn-ghost { background:#fff;color:#000;border:1px solid #000; }
+.btn-hover { background:#F5F5F5;color:#000;border:1px solid #000; }
+.divider { width:1px;height:28px;background:#000;margin:0 8px; }
+.divider-light { width:1px;height:28px;background:#CCC;margin:0 8px; }
+.label { font-size:9px;color:#888;letter-spacing:0.06em;text-transform:uppercase;min-width:90px; }
+.seg-row { display:flex;gap:6px;align-items:center; }
+.seg { width:16px;height:16px; }
+.seg.active { background:#171717; }
+.seg.inactive { background:#E6E6E6; }
+.dot-row { display:flex;gap:3px; }
+.dot { width:8px;height:8px;border-radius:50%; }
+.dot.filled { background:#000; }
+.dot.empty { background:#E6E6E6; }
+</style></head><body>
+<div class="row"><span class="label">btn filled</span><div class="pill btn-filled">FOCUS</div><div class="pill btn-filled">BREAK</div></div>
+<div class="row"><span class="label">btn ghost</span><div class="pill btn-ghost">FOCUS</div><div class="pill btn-ghost">BREAK</div></div>
+<div class="row"><span class="label">btn hover</span><div class="pill btn-hover">FOCUS</div></div>
+<div class="row"><span class="label">borders</span><div style="width:40px;height:1px;background:#000;margin:auto 0"></div><span style="font-size:9px;color:#888;margin:0 8px">--ink</span><div style="width:40px;height:1px;background:#CCC;margin:auto 0"></div><span style="font-size:9px;color:#888;margin:0 8px">--light</span></div>
+<div class="row"><span class="label">segments</span>
+  <div class="seg-row">
+    <div class="seg active"></div><div class="seg active"></div><div class="seg active"></div>
+    <div style="width:8px"></div>
+    <div class="seg inactive"></div><div class="seg inactive"></div><div class="seg inactive"></div>
+    <span style="font-size:9px;color:#888;margin-left:6px">active / inactive</span>
+  </div>
+</div>
+<div class="row"><span class="label">progress dots</span>
+  <div class="dot-row">
+    <div class="dot filled"></div><div class="dot filled"></div><div class="dot filled"></div><div class="dot filled"></div>
+    <div class="dot filled"></div><div class="dot empty"></div><div class="dot empty"></div><div class="dot empty"></div>
+    <div class="dot empty"></div><div class="dot empty"></div>
+  </div>
+</div>
+</body></html>

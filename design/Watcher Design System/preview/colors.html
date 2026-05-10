@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #fff; font-family: 'Share Tech Mono', monospace, monospace; padding: 20px; }
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 12px; }
+  .swatch { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .chip { width: 60px; height: 60px; border: 1px solid #ccc; }
+  .chip.ink { background: #000; border-color: #000; }
+  .chip.paper { background: #fff; border: 1px solid #ccc; }
+  .chip.ghost { background: #E6E6E6; border-color: #E6E6E6; }
+  .chip.dim { background: #171717; border-color: #171717; }
+  .chip.mid { background: #888; border-color: #888; }
+  .chip.light { background: #CCC; border-color: #CCC; }
+  .chip.pale { background: #F5F5F5; border-color: #ddd; }
+  .name { font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #000; }
+  .val { font-size: 9px; color: #888; }
+</style></head><body>
+<div class="grid">
+  <div class="swatch"><div class="chip ink"></div><div class="name">--ink</div><div class="val">#000000</div></div>
+  <div class="swatch"><div class="chip paper"></div><div class="name">--paper</div><div class="val">#FFFFFF</div></div>
+  <div class="swatch"><div class="chip ghost"></div><div class="name">--ghost</div><div class="val">#E6E6E6</div></div>
+  <div class="swatch"><div class="chip dim"></div><div class="name">--dim</div><div class="val">#171717</div></div>
+  <div class="swatch"><div class="chip mid"></div><div class="name">--mid</div><div class="val">#888888</div></div>
+  <div class="swatch"><div class="chip light"></div><div class="name">--light</div><div class="val">#CCCCCC</div></div>
+  <div class="swatch"><div class="chip pale"></div><div class="name">--pale</div><div class="val">#F5F5F5</div></div>
+</div>
+</body></html>

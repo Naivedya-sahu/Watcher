@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0;padding:0;box-sizing:border-box; }
+body { background:#f0f0f0; padding:16px; font-family:'Share Tech Mono',monospace; }
+/* Exact 400×300 screen replica, scaled to fit preview */
+.screen-wrap { transform-origin:top left; }
+.screen {
+  width:400px; height:300px; background:#fff;
+  position:relative; overflow:hidden;
+  outline:1px solid #ccc;
+}
+/* Square dot border */
+#pomo-dots { position:absolute; top:0; left:0; width:400px; height:300px; pointer-events:none; }
+/* Inner content area: 282×202 at (59,49) */
+.pomo-inner {
+  position:absolute; left:59px; top:49px; width:282px; height:202px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+}
+.pomo-time { font-size:52px; color:#111; letter-spacing:0.06em; line-height:1; }
+.pomo-sub  { font-size:10px; color:#888; letter-spacing:0.14em; text-transform:uppercase; }
+/* Buttons — exact positions */
+.pomo-btns {
+  position:absolute; left:0; right:0;
+  bottom:10px; display:flex; align-items:center; padding:0 18px; gap:0;
+}
+.pomo-start {
+  width:36px; height:36px; background:none; border:none; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.pomo-modes { display:flex; gap:5px; flex:1; justify-content:center; }
+.pmode {
+  font-family:'Share Tech Mono',monospace; font-size:8px; letter-spacing:0.14em;
+  text-transform:uppercase; height:24px; border-radius:12px; padding:0 12px;
+  border:1px solid #000; cursor:pointer; background:#fff; color:#000;
+  display:inline-flex; align-items:center;
+}
+.pmode.active { background:#000; color:#fff; }
+.pomo-stop { width:13px; height:13px; background:#000; border:none; cursor:pointer; }
+</style></head><body>
+<div class="screen-wrap">
+<div class="screen">
+  <svg id="pomo-dots" viewBox="0 0 400 300"></svg>
+  <div class="pomo-inner">
+    <div class="pomo-time">24:17</div>
+    <div class="pomo-sub">On Break</div>
+  </div>
+  <div class="pomo-btns">
+    <button class="pomo-start">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path d="M4 2.5L14.5 9L4 15.5V2.5Z" fill="black"/></svg>
+    </button>
+    <div class="pomo-modes">
+      <button class="pmode active">Focus</button>
+      <button class="pmode">Break</button>
+      <button class="pmode">Long</button>
+    </div>
+    <div class="pomo-stop"></div>
+  </div>
+</div>
+</div>
+<script>
+// Exact dot positions from SVG file
+// TOP: 18 squares at y=49, x=59,75,91...331 (step 16)
+// BOTTOM: 18 at y=241
+// LEFT: 11 at x=59, y=65,81...225
+// RIGHT: 11 at x=331, y=65,81...225
+// Total = 58, clockwise. Show ~38 filled (break mode ~63%)
+const svg = document.getElementById('pomo-dots');
+const positions = [];
+for (let i=0;i<18;i++) positions.push([59+i*16, 49]);        // top
+for (let i=0;i<11;i++) positions.push([331, 65+i*16]);        // right
+for (let i=17;i>=0;i--) positions.push([59+i*16, 241]);       // bottom
+for (let i=10;i>=0;i--) positions.push([59, 65+i*16]);        // left
+
+const filled = 38; // ~65% of 58
+positions.forEach(([x,y],i) => {
+  const r = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  r.setAttribute('x',x); r.setAttribute('y',y);
+  r.setAttribute('width','10'); r.setAttribute('height','10');
+  r.setAttribute('fill', i<filled ? '#000' : '#E6E6E6');
+  svg.appendChild(r);
+});
+</script>
+</body></html>

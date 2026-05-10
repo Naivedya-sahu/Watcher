@@ -38,6 +38,13 @@ void web_server_set_pomo_time_callbacks(
 // Callback should call fb_flush(fb, EPD_REFRESH_FULL) on hardware.
 void web_server_set_push_callback(void (*cb_push_raw)(void));
 
+// Register callbacks for hardware button / encoder simulation from the web console.
+// btn_id: 0=BTN_1, 1=BTN_2, 2=BTN_3  |  evt: 0=short, 1=long
+void web_server_set_input_callbacks(
+    void (*cb_btn)(int btn_id, int evt),
+    void (*cb_enc)(int delta)
+);
+
 #ifdef __cplusplus
 }
 #endif

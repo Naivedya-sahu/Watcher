@@ -12,9 +12,10 @@
 // | BTN A (back) | 40 |
 // | BTN B (next) | 39 |
 // | BTN C (pomo) | 38 |
-// | ENC B | 37 |
-// | ENC A | 36 |
-// | ENC SW| 35 |
+// | ENC SW| 37 |
+// | ENC B | 36 |
+// | ENC A | 35 |
+
 //============================================================
 
 // If running WITHOUT the peripheral board: wire your own 10K pull-ups to 3.3V.
