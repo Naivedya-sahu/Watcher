@@ -1,0 +1,83 @@
+{
+  "configurations": [
+    {
+      "name": "ESP-IDF",
+
+      // ── PRIMARY: post-build (run 'idf.py build' once to generate) ──────────
+      // compile_commands.json contains the EXACT -I flags the compiler used.
+      // When this file exists, IntelliSense uses it and ignores includePath below.
+      // This is the ground truth — all squiggles disappear after first build.
+      "compileCommands": "${workspaceFolder}/build/compile_commands.json",
+
+      // ── FALLBACK: pre-build (used before compile_commands.json exists) ──────
+      // Explicit paths only — no "/**" on IDF root (too many dirs, VS Code chokes).
+      // IDF v6.0: driver headers split into esp_driver_* components.
+      // Each one listed here because "components/**" hits VS Code's dir scan limit.
+      "includePath": [
+        // Project files
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/build/config",
+
+        // Our custom components (epd, fb, fonts, button, buzzer, wifi_creds...)
+        "${workspaceFolder}/../components/**",
+
+        // ── IDF v6.0 peripheral drivers (split from monolithic 'driver') ─────
+        "C:/esp/v6.0/esp-idf/components/esp_driver_uart/include",
+        "C:/esp/v6.0/esp-idf/components/esp_driver_gpio/include",
+        "C:/esp/v6.0/esp-idf/components/esp_driver_ledc/include",
+        "C:/esp/v6.0/esp-idf/components/esp_driver_spi/include",
+        "C:/esp/v6.0/esp-idf/components/esp_driver_i2c/include",
+        "C:/esp/v6.0/esp-idf/components/esp_driver_gptimer/include",
+        "C:/esp/v6.0/esp-idf/components/esp_driver_rmt/include",
+
+        // ── Core IDF includes ─────────────────────────────────────────────────
+        "C:/esp/v6.0/esp-idf/components/esp_common/include",
+        "C:/esp/v6.0/esp-idf/components/esp_hw_support/include",
+        "C:/esp/v6.0/esp-idf/components/esp_system/include",
+        "C:/esp/v6.0/esp-idf/components/esp_event/include",
+        "C:/esp/v6.0/esp-idf/components/esp_netif/include",
+        "C:/esp/v6.0/esp-idf/components/esp_wifi/include",
+        "C:/esp/v6.0/esp-idf/components/esp_http_server/include",
+        "C:/esp/v6.0/esp-idf/components/app_update/include",
+        "C:/esp/v6.0/esp-idf/components/bootloader_support/include",
+        "C:/esp/v6.0/esp-idf/components/nvs_flash/include",
+        "C:/esp/v6.0/esp-idf/components/log/include",
+
+        // ── FreeRTOS ──────────────────────────────────────────────────────────
+        "C:/esp/v6.0/esp-idf/components/freertos/FreeRTOS-Kernel/include",
+        "C:/esp/v6.0/esp-idf/components/freertos/FreeRTOS-Kernel/portable/xtensa/include",
+        "C:/esp/v6.0/esp-idf/components/freertos/esp_additions/include",
+
+        // ── Chip / SoC specific ───────────────────────────────────────────────
+        "C:/esp/v6.0/esp-idf/components/soc/include",
+        "C:/esp/v6.0/esp-idf/components/soc/esp32s3/include",
+        "C:/esp/v6.0/esp-idf/components/hal/include",
+        "C:/esp/v6.0/esp-idf/components/hal/esp32s3/include",
+        "C:/esp/v6.0/esp-idf/components/xtensa/include",
+        "C:/esp/v6.0/esp-idf/components/xtensa/esp32s3/include",
+
+        // ── Newlib / libc ─────────────────────────────────────────────────────
+        "C:/esp/v6.0/esp-idf/components/newlib/platform_include"
+      ],
+
+      "defines": [
+        "ESP_PLATFORM",
+        "IDF_VER=\"v6.0\"",
+        "CONFIG_IDF_TARGET_ESP32S3=1",
+        "UNICODE",
+        "_UNICODE"
+      ],
+
+      // Cross-compiler for Xtensa ESP32-S3
+      // VS Code uses this to derive system include paths
+      "compilerPath": "C:\\Espressif\\tools\\xtensa-esp-elf\\esp-15.2.0_20251204\\xtensa-esp-elf\\bin\\xtensa-esp32s3-elf-gcc.exe",
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+
+      // No native Xtensa mode — gcc-x86 is the accepted workaround used by the
+      // ESP-IDF VS Code extension itself. Not perfect but best available.
+      "intelliSenseMode": "gcc-x86"
+    }
+  ],
+  "version": 4
+}
