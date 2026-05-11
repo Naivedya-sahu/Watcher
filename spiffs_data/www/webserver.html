@@ -536,6 +536,32 @@ async function cfgStr(key, val) { return apiCmd({ cmd:'cfg', key, val }); }
 async function cfgNum(key, val) { return apiCmd({ cmd:'cfg', key, nval: val }); }
 async function cfgBool(key, val) { return apiCmd({ cmd:'cfg', key, nval: val }); }
 
+// ── ALARM / TASK FORMAT CONVERTERS ───────────────────────────────────────────
+// Server alarm: { hour:int, min:int, label:str, on:bool, days:int(bitmask) }
+// Client alarm: { time:"HH:MM", hour, min, label, on, days }
+function alarmFromServer(a) {
+  const h = String(a.hour  || 0).padStart(2, '0');
+  const m = String(a.min   || 0).padStart(2, '0');
+  return { ...a, time: `${h}:${m}` };
+}
+function alarmToServer(a) {
+  const parts = (a.time || '00:00').split(':');
+  return {
+    hour:  parseInt(parts[0]) || 0,
+    min:   parseInt(parts[1]) || 0,
+    label: (a.label || '').toUpperCase().slice(0, 15),
+    on:    !!a.on,
+    days:  typeof a.days === 'number' ? a.days : 0,
+  };
+}
+// Wrapped POST helpers so every caller uses the right envelope
+async function postAlarms() {
+  return apiPost('/api/alarms', { alarms: S.alarms.map(alarmToServer) });
+}
+async function postTasks() {
+  return apiPost('/api/tasks', { tasks: S.tasks });
+}
+
 // ── APPLY STATE FROM API RESPONSE ────────────────────────────────────────────
 function applyState(d) {
   if (!d) return;
@@ -980,54 +1006,54 @@ document.addEventListener('click', async (e) => {
     const i = parseInt(t.dataset.alarmToggle);
     S.alarms[i].on = !S.alarms[i].on;
     renderConfigPane();
-    await apiPost('/api/alarms', S.alarms);
+    await postAlarms();
     return;
   }
   // Alarm: delete
   if (t.dataset.alarmDel !== undefined) {
     S.alarms.splice(parseInt(t.dataset.alarmDel), 1);
     renderConfigPane();
-    await apiPost('/api/alarms', S.alarms);
+    await postAlarms();
     return;
   }
   // Alarm: add
   if (t.id === 'alarm-add') {
     S.alarms.push({ time: '08:00', label: 'NEW', on: true });
     renderConfigPane();
-    await apiPost('/api/alarms', S.alarms);
+    await postAlarms();
     return;
   }
   // Alarm: export
   if (t.id === 'alarm-export') { downloadJson('alarms.json', S.alarms); return; }
   // Alarm: import
-  if (t.id === 'alarm-import') { importJson(data => { S.alarms = data; renderConfigPane(); apiPost('/api/alarms', S.alarms); }); return; }
+  if (t.id === 'alarm-import') { importJson(data => { S.alarms = data; renderConfigPane(); postAlarms(); }); return; }
 
   // Task: done toggle
   if (t.dataset.taskDone !== undefined) {
     const i = parseInt(t.dataset.taskDone);
     S.tasks[i].done = !S.tasks[i].done;
     renderConfigPane();
-    await apiPost('/api/tasks', S.tasks);
+    await postTasks();
     return;
   }
   // Task: delete
   if (t.dataset.taskDel !== undefined) {
     S.tasks.splice(parseInt(t.dataset.taskDel), 1);
     renderConfigPane();
-    await apiPost('/api/tasks', S.tasks);
+    await postTasks();
     return;
   }
   // Task: add
   if (t.id === 'task-add') {
     S.tasks.push({ text: 'NEW TASK', done: false, tag: 'WORK' });
     renderConfigPane();
-    await apiPost('/api/tasks', S.tasks);
+    await postTasks();
     return;
   }
   // Task: export
   if (t.id === 'task-export') { downloadJson('tasks.json', S.tasks); return; }
   // Task: import
-  if (t.id === 'task-import') { importJson(data => { S.tasks = data; renderConfigPane(); apiPost('/api/tasks', S.tasks); }); return; }
+  if (t.id === 'task-import') { importJson(data => { S.tasks = data; renderConfigPane(); postTasks(); }); return; }
 
   // Calendar: delete
   if (t.dataset.evDel !== undefined) {
@@ -1161,24 +1187,24 @@ document.addEventListener('change', async (e) => {
   // Alarm: time change
   if (t.dataset.alarmTime !== undefined) {
     S.alarms[parseInt(t.dataset.alarmTime)].time = t.value;
-    await apiPost('/api/alarms', S.alarms);
+    await postAlarms();
     return;
   }
   if (t.dataset.alarmLabel !== undefined) {
     S.alarms[parseInt(t.dataset.alarmLabel)].label = t.value.toUpperCase();
-    await apiPost('/api/alarms', S.alarms);
+    await postAlarms();
     return;
   }
 
   // Task: text/tag
   if (t.dataset.taskText !== undefined) {
     S.tasks[parseInt(t.dataset.taskText)].text = t.value;
-    await apiPost('/api/tasks', S.tasks);
+    await postTasks();
     return;
   }
   if (t.dataset.taskTag !== undefined) {
     S.tasks[parseInt(t.dataset.taskTag)].tag = t.value;
-    await apiPost('/api/tasks', S.tasks);
+    await postTasks();
     return;
   }
 
@@ -1376,12 +1402,18 @@ async function init() {
     addLog('ERR', 'device not reachable');
   }
 
-  // Load collections
-  const alarms = await apiGet('/api/alarms');
-  if (Array.isArray(alarms)) { S.alarms = alarms; addLog('ALRM', `${alarms.length} alarms`); }
+  // Load collections — server returns {alarms:[...]} and {tasks:[...]} objects
+  const alarmData = await apiGet('/api/alarms');
+  if (alarmData && Array.isArray(alarmData.alarms)) {
+    S.alarms = alarmData.alarms.map(alarmFromServer);
+    addLog('ALRM', `${S.alarms.length} alarms loaded`);
+  }
 
-  const tasks = await apiGet('/api/tasks');
-  if (Array.isArray(tasks)) { S.tasks = tasks; addLog('TASK', `${tasks.length} tasks`); }
+  const taskData = await apiGet('/api/tasks');
+  if (taskData && Array.isArray(taskData.tasks)) {
+    S.tasks = taskData.tasks;
+    addLog('TASK', `${S.tasks.length} tasks loaded`);
+  }
 
   // Render config pane with live data
   renderConfigPane();

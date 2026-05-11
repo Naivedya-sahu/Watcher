@@ -183,7 +183,8 @@ bool tasks_set_json(const char *json) {
     else if (s_task_count == 0)
         s_scroll = 0;
     cJSON_Delete(root);
-    tasks_save_to_spiffs();   // BUG-10: persist immediately after web push
+    tasks_save_to_spiffs();
+    ESP_LOGI(TAG_T, "set_json: %d tasks saved", s_task_count);
     return true;
 }
 
@@ -194,6 +195,8 @@ static void tasks_btn(btn_id_t id, btn_evt_t evt) {
     if (id == BTN_3 && evt == BTN_SHORT) {
         if (s_task_count > 0) {
             s_tasks[s_scroll].done = !s_tasks[s_scroll].done;
+            ESP_LOGI(TAG_T, "btn toggle[%d] '%s' → %s", s_scroll,
+                     s_tasks[s_scroll].text, s_tasks[s_scroll].done ? "DONE" : "OPEN");
             tasks_save_to_spiffs();
             screen_force_render();
         }
@@ -205,19 +208,23 @@ static void tasks_enc(int delta) {
     if (s_scroll < 0) s_scroll = 0;
     if (s_task_count == 0) s_scroll = 0;
     else if (s_scroll >= s_task_count) s_scroll = s_task_count - 1;
+    ESP_LOGI(TAG_T, "scroll → %d/%d", s_scroll + 1, s_task_count);
     screen_force_render();
 }
 
 static void tasks_enc_click(void) {
     if (s_task_count > 0) {
         s_tasks[s_scroll].done = !s_tasks[s_scroll].done;
+        ESP_LOGI(TAG_T, "toggle[%d] '%s' → %s", s_scroll, s_tasks[s_scroll].text,
+                 s_tasks[s_scroll].done ? "DONE" : "OPEN");
         tasks_save_to_spiffs();
         screen_force_render();
     }
 }
 
 static void tasks_enter(void) {
-    tasks_load_from_spiffs();   // BUG-10: restore from SPIFFS (no-op if file absent)
+    tasks_load_from_spiffs();
+    ESP_LOGI(TAG_T, "enter: %d tasks loaded", s_task_count);
     s_scroll = 0;
     screen_force_render();
 }

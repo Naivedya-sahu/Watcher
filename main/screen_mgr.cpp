@@ -3,6 +3,7 @@
 #include "fb.h"
 #include "config_store.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include <string.h>
 
 static const char *TAG = "scr";
@@ -53,9 +54,10 @@ int screen_mgr_render(fb_t *fb) {
     screen_def_t *sc = active();
     if (!sc) return EPD_FULL;
     int mode = sc->force_full ? EPD_FULL : EPD_PARTIAL;
+    ESP_LOGD(TAG, "[RENDER] '%s' %s", sc->id, mode == EPD_FULL ? "FULL" : "partial");
     fb_clear(fb);
     if (sc->render) sc->render(fb);
-    if (g_cfg.theme_dark) fb_invert(fb);   // BUG-2: apply dark theme inversion post-render
+    if (g_cfg.theme_dark) fb_invert(fb);
     sc->needs_render = false;
     sc->force_full   = false;
     return mode;
@@ -63,16 +65,30 @@ int screen_mgr_render(fb_t *fb) {
 
 void screen_mgr_button(btn_id_t id, btn_evt_t evt) {
     screen_def_t *sc = active();
+    ESP_LOGI(TAG, "[BTN] id=%d evt=%s screen='%s'",
+             id, evt == BTN_LONG ? "LONG" : "SHORT", sc ? sc->id : "?");
     if (sc && sc->on_button) sc->on_button(id, evt);
 }
 
 void screen_mgr_encoder(int delta) {
+    // Software debounce: ignore encoder events within 60ms of each other.
+    // Prevents hardware-noise phantom rotations from changing selection.
+    static uint32_t s_last_enc_ms = 0;
+    uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
+    if (now_ms - s_last_enc_ms < 60) {
+        ESP_LOGD(TAG, "[ENC] delta=%d debounced (gap=%lums)", delta,
+                 (unsigned long)(now_ms - s_last_enc_ms));
+        return;
+    }
+    s_last_enc_ms = now_ms;
     screen_def_t *sc = active();
+    ESP_LOGI(TAG, "[ENC] delta=%d screen='%s'", delta, sc ? sc->id : "?");
     if (sc && sc->on_encoder) sc->on_encoder(delta);
 }
 
 void screen_mgr_enc_click(void) {
     screen_def_t *sc = active();
+    ESP_LOGI(TAG, "[ENC_CLICK] screen='%s'", sc ? sc->id : "?");
     if (sc && sc->on_enc_click) sc->on_enc_click();
 }
 

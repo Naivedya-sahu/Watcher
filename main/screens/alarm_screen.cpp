@@ -9,9 +9,12 @@
 #include "buzzer.h"
 #include "time_svc.h"
 #include "cJSON.h"
+#include "esp_log.h"
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
+
+static const char *TAG = "alarm";
 
 // ── Alarm data ────────────────────────────────────────────────
 // days bitmask: bit0=Mon, bit1=Tue, bit2=Wed, bit3=Thu,
@@ -63,6 +66,7 @@ void alarm_check_now(void) {
     time_t t = time_svc_get();
     struct tm tm; localtime_r(&t, &tm);
     if (tm.tm_sec != 0) return;            // only on minute boundary
+    ESP_LOGD(TAG, "check %02d:%02d day=%d", tm.tm_hour, tm.tm_min, tm.tm_wday);
     // tm_wday: 0=Sun,1=Mon..6=Sat → map to bit0=Mon..bit6=Sun
     int day_bit = (tm.tm_wday == 0) ? 6 : (tm.tm_wday - 1);
     for (int i = 0; i < s_alarm_count; i++) {
@@ -71,14 +75,15 @@ void alarm_check_now(void) {
         if (s_alarms[i].on && day_ok &&
             s_alarms[i].hour == tm.tm_hour &&
             s_alarms[i].min  == tm.tm_min) {
-            // Start ringing (first buzz fires immediately in alarm_tick)
+            ESP_LOGI(TAG, "RING '%s' %02d:%02d", s_alarms[i].label,
+                     s_alarms[i].hour, s_alarms[i].min);
             s_ringing    = true;
             s_ring_tick  = 0;
             s_ring_count = 0;
             strncpy(s_ring_label, s_alarms[i].label, sizeof(s_ring_label) - 1);
             s_ring_label[sizeof(s_ring_label) - 1] = '\0';
             alarm_screen.needs_render = true;
-            buzzer_tone(BUZZ_ALERT);   // immediate first buzz
+            buzzer_tone(BUZZ_ALERT);
         }
     }
 }
@@ -90,8 +95,10 @@ static void alarm_tick(void) {
     if (s_ring_tick % RING_REPEAT_TICKS == 0) {
         s_ring_count++;
         if (s_ring_count >= RING_MAX_REPEATS) {
-            s_ringing = false;   // auto-dismiss after 15 s
+            ESP_LOGI(TAG, "auto-dismiss after %d repeats", s_ring_count);
+            s_ringing = false;
         } else {
+            ESP_LOGI(TAG, "repeat %d/%d", s_ring_count, RING_MAX_REPEATS);
             buzzer_tone(BUZZ_ALERT);
         }
         screen_force_render();
@@ -209,40 +216,62 @@ bool alarm_set_json(const char *json) {
     if (s_focus >= s_alarm_count && s_alarm_count > 0)
         s_focus = s_alarm_count - 1;
     cJSON_Delete(root);
+    ESP_LOGI(TAG, "set_json: loaded %d alarms", n);
     return true;
 }
 
 // ── Button handler ────────────────────────────────────────────
 static void alarm_btn(btn_id_t id, btn_evt_t evt) {
-    if (s_ringing) { s_ringing = false; screen_force_render(); return; }  // any btn dismisses
+    if (s_ringing) {
+        ESP_LOGI(TAG, "btn dismiss ring");
+        s_ringing = false; screen_force_render(); return;
+    }
     if (id == BTN_1 && evt == BTN_LONG)  { screen_goto("clock"); return; }
     if (id == BTN_1 && evt == BTN_SHORT) {
         if (s_alarm_count > 0) s_focus = (s_focus - 1 + s_alarm_count) % s_alarm_count;
+        ESP_LOGI(TAG, "focus → %d", s_focus);
         screen_force_render();
     }
     if (id == BTN_2 && evt == BTN_SHORT) {
         if (s_alarm_count > 0) s_focus = (s_focus + 1) % s_alarm_count;
+        ESP_LOGI(TAG, "focus → %d", s_focus);
         screen_force_render();
     }
     if (id == BTN_3 && evt == BTN_SHORT) {
-        if (s_alarm_count > 0) s_alarms[s_focus].on = !s_alarms[s_focus].on;
+        if (s_alarm_count > 0) {
+            s_alarms[s_focus].on = !s_alarms[s_focus].on;
+            ESP_LOGI(TAG, "toggle[%d] '%s' → %s", s_focus,
+                     s_alarms[s_focus].label, s_alarms[s_focus].on ? "ON" : "OFF");
+        }
         screen_force_render();
     }
 }
 
 // ── Encoder ───────────────────────────────────────────────────
 static void alarm_enc(int delta) {
-    if (s_alarm_count > 0)
+    if (s_alarm_count > 0) {
         s_focus = (s_focus + delta + s_alarm_count) % s_alarm_count;
+        ESP_LOGI(TAG, "enc delta=%d focus=%d", delta, s_focus);
+    }
     screen_force_render();
 }
 static void alarm_enc_click(void) {
-    if (s_ringing) { s_ringing = false; screen_force_render(); return; }
-    if (s_alarm_count > 0) s_alarms[s_focus].on = !s_alarms[s_focus].on;
+    if (s_ringing) {
+        ESP_LOGI(TAG, "enc_click dismiss ring");
+        s_ringing = false; screen_force_render(); return;
+    }
+    if (s_alarm_count > 0) {
+        s_alarms[s_focus].on = !s_alarms[s_focus].on;
+        ESP_LOGI(TAG, "enc_click toggle[%d] '%s' → %s", s_focus,
+                 s_alarms[s_focus].label, s_alarms[s_focus].on ? "ON" : "OFF");
+    }
     screen_force_render();
 }
 
-static void alarm_enter(void) { s_focus = 0; screen_force_render(); }
+static void alarm_enter(void) {
+    ESP_LOGI(TAG, "enter (%d alarms)", s_alarm_count);
+    s_focus = 0; screen_force_render();
+}
 
 screen_def_t alarm_screen = {
     .id           = "alarm",

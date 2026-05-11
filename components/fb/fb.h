@@ -101,6 +101,10 @@ void fb_draw_stop_sq(fb_t *fb, int cx, int cy, int size, int color);
 // Called by screen_mgr after render when g_cfg.theme_dark is set.
 void fb_invert(fb_t *fb);
 
+// Progress ring — filled=solid, empty=outline, starting from top-centre.
+// filled_count 0..60 where 60=full ring, 0=all empty outlines.
+void fb_draw_dot_ring_progress(fb_t *fb, int filled_count);
+
 #ifdef __cplusplus
 }
 #endif

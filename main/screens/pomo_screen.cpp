@@ -83,14 +83,9 @@ static int          s_session = 1;
 
 // ── Render ────────────────────────────────────────────────────
 static void pomo_render(fb_t *fb) {
-    // Ring: 120s wave driven by wall-clock time (matches clock screen animation)
-    int ring_cycle = 0;
-    if (time_svc_is_synced()) {
-        time_t now_t = time_svc_get();
-        struct tm tnow; localtime_r(&now_t, &tnow);
-        ring_cycle = (tnow.tm_min * 60 + tnow.tm_sec) % 120;
-    }
-    fb_draw_dot_ring_wave(fb, ring_cycle);
+    // Ring: timer progress — full ring when interval starts, empties as time elapses.
+    int filled = (s_total > 0) ? (int)(((int64_t)60 * s_remain + s_total - 1) / s_total) : 60;
+    fb_draw_dot_ring_progress(fb, filled);
 
     // ── Header — inside top ring safe area (y=24) ─────────────
     // "POMODORO" left at x=32, "SESSION N/M" right-aligned at x=368
@@ -165,6 +160,8 @@ static bool pomo_advance(void) {
             s_remain  = s_total;
             if (s_mode == MODE_FOCUS) s_session++;
             pomo_screen.force_full = true;
+            ESP_LOGI("pomo", "interval done → %s (session %d, next=%us)",
+                     MODE_LABELS[s_mode], s_session, s_total);
         }
     }
     return changed;
@@ -189,10 +186,13 @@ void pomo_start_stop(void) {
     if (!s_running) {
         s_running = true; s_paused = false; s_last_ms = 0;
         buzzer_tone(BUZZ_SUCCESS);
+        ESP_LOGI("pomo", "START %s %us remain", MODE_LABELS[s_mode], s_remain);
     } else if (!s_paused) {
         s_paused = true;
+        ESP_LOGI("pomo", "PAUSE %us remain", s_remain);
     } else {
         s_paused = false; s_last_ms = 0;
+        ESP_LOGI("pomo", "RESUME %us remain", s_remain);
     }
     screen_force_render();
 }
@@ -204,6 +204,9 @@ void pomo_reset(void) {
     s_remain  = s_total;
     s_session = 1;
     buzzer_tone(BUZZ_TICK);
+    ESP_LOGI("pomo", "RESET focus=%dm break=%dm long=%dm cycles=%d",
+             g_cfg.pomo_focus_mins, g_cfg.pomo_break_mins,
+             g_cfg.pomo_long_mins, g_cfg.pomo_cycles);
     screen_force_full();
     screen_force_render();
 }
