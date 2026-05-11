@@ -171,9 +171,10 @@ static void settings_select(int row) {
             screen_force_render();
             ESP_LOGI(TAG, "AP mode toggled → %s (restart to apply)", g_cfg.ap_mode ? "ON" : "OFF");
             break;
-        case 3: // THEME — toggle light/dark
+        case 3: // THEME — toggle light/dark; force full refresh to avoid ghosting on inversion
             g_cfg.theme_dark = !g_cfg.theme_dark;
             cfg_save();
+            screen_force_full();
             screen_force_render();
             break;
         case 7: // SLEEP — cycle: OFF → 5 → 10 → 15 → 30 → OFF

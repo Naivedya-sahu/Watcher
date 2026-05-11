@@ -16,6 +16,10 @@ void web_server_push_state(void);
 // Call from main loop — dispatches any pending commands queued from WS/REST.
 void web_server_poll(void);
 
+// Call after every EPD flush — increments bitmap_rev in state JSON so
+// webconsole knows to re-fetch /api/bitmap.
+void web_server_bitmap_updated(void);
+
 // Register runtime callbacks provided by `main` to avoid linking directly
 // against application symbols. Call from `main` before `web_server_start()`.
 void web_server_set_screen_callbacks(

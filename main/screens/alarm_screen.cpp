@@ -48,6 +48,15 @@ static int s_focus       = 0;
 #define COL_DAYS  228
 #define COL_TOG   380   // 12×12 square, right edge at 392
 
+// ── Ringing state ─────────────────────────────────────────────
+#define RING_REPEAT_TICKS  150   // 3 s at 50 Hz
+#define RING_MAX_REPEATS     5   // auto-dismiss after 15 s
+
+static bool s_ringing    = false;
+static int  s_ring_tick  = 0;
+static int  s_ring_count = 0;
+static char s_ring_label[16] = "";
+
 // ── Alarm check — call from main loop every second ────────────
 void alarm_check_now(void) {
     if (!time_svc_is_synced()) return;
@@ -62,8 +71,30 @@ void alarm_check_now(void) {
         if (s_alarms[i].on && day_ok &&
             s_alarms[i].hour == tm.tm_hour &&
             s_alarms[i].min  == tm.tm_min) {
+            // Start ringing (first buzz fires immediately in alarm_tick)
+            s_ringing    = true;
+            s_ring_tick  = 0;
+            s_ring_count = 0;
+            strncpy(s_ring_label, s_alarms[i].label, sizeof(s_ring_label) - 1);
+            s_ring_label[sizeof(s_ring_label) - 1] = '\0';
+            alarm_screen.needs_render = true;
+            buzzer_tone(BUZZ_ALERT);   // immediate first buzz
+        }
+    }
+}
+
+// ── Tick — called at 50 Hz when alarm screen is active ────────
+static void alarm_tick(void) {
+    if (!s_ringing) return;
+    s_ring_tick++;
+    if (s_ring_tick % RING_REPEAT_TICKS == 0) {
+        s_ring_count++;
+        if (s_ring_count >= RING_MAX_REPEATS) {
+            s_ringing = false;   // auto-dismiss after 15 s
+        } else {
             buzzer_tone(BUZZ_ALERT);
         }
+        screen_force_render();
     }
 }
 
@@ -71,18 +102,30 @@ void alarm_check_now(void) {
 static const char DAY_CHARS[] = "MTWTFSS";
 
 static void alarm_render(fb_t *fb) {
+    // Ringing banner — full-width inverted bar at top
+    if (s_ringing) {
+        fb_fill_rect(fb, 0, 0, FB_W, 36, FB_BLACK);
+        char banner[32];
+        snprintf(banner, sizeof(banner), "ALARM  %s", s_ring_label);
+        int bw = (int)strlen(banner) * FONT_W;
+        fb_draw_str(fb, (FB_W - bw) / 2, (36 - FONT_H) / 2, banner, FB_WHITE);
+    }
+
     // Header — "ALARMS" left, "N ACTIVE" right
-    fb_draw_str(fb, 32, HEADER_Y, "ALARMS", FB_BLACK);
+    int header_y = s_ringing ? 42 : HEADER_Y;
+    fb_draw_str(fb, 32, header_y, "ALARMS", FB_BLACK);
     int active = 0;
     for (int i = 0; i < s_alarm_count; i++) if (s_alarms[i].on) active++;
     char act[16];
     snprintf(act, sizeof(act), "%d ACTIVE", active);
     int actw = (int)strlen(act) * FONT_W;
-    fb_draw_str(fb, 368 - actw, HEADER_Y, act, FB_BLACK);
-    fb_draw_hline(fb, 0, HDR_LINE_Y, FB_W, FB_BLACK);
+    fb_draw_str(fb, 368 - actw, header_y, act, FB_BLACK);
+    int hdr_line_y = s_ringing ? header_y + 12 : HDR_LINE_Y;
+    fb_draw_hline(fb, 0, hdr_line_y, FB_W, FB_BLACK);
+    int row_start = hdr_line_y + 2;
 
     for (int i = 0; i < s_alarm_count; i++) {
-        int y  = ROW_START + i * ROW_H;
+        int y  = row_start + i * ROW_H;
         int ty = y + (ROW_BODY - FONT_H) / 2;   // vertically centred text y
         bool focused = (i == s_focus);
         int  fg      = focused ? FB_WHITE : FB_BLACK;
@@ -171,6 +214,7 @@ bool alarm_set_json(const char *json) {
 
 // ── Button handler ────────────────────────────────────────────
 static void alarm_btn(btn_id_t id, btn_evt_t evt) {
+    if (s_ringing) { s_ringing = false; screen_force_render(); return; }  // any btn dismisses
     if (id == BTN_1 && evt == BTN_LONG)  { screen_goto("clock"); return; }
     if (id == BTN_1 && evt == BTN_SHORT) {
         if (s_alarm_count > 0) s_focus = (s_focus - 1 + s_alarm_count) % s_alarm_count;
@@ -193,6 +237,7 @@ static void alarm_enc(int delta) {
     screen_force_render();
 }
 static void alarm_enc_click(void) {
+    if (s_ringing) { s_ringing = false; screen_force_render(); return; }
     if (s_alarm_count > 0) s_alarms[s_focus].on = !s_alarms[s_focus].on;
     screen_force_render();
 }
@@ -205,7 +250,7 @@ screen_def_t alarm_screen = {
     .group        = "time",
     .enter        = alarm_enter,
     .exit         = NULL,
-    .tick         = NULL,
+    .tick         = alarm_tick,
     .render       = alarm_render,
     .on_button    = alarm_btn,
     .on_encoder   = alarm_enc,

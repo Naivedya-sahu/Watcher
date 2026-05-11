@@ -265,6 +265,10 @@ void fb_draw_stop_sq(fb_t *fb, int cx, int cy, int size, int color) {
     fb_fill_rect(fb, cx - size/2, cy - size/2, size, size, color);
 }
 
+void fb_invert(fb_t *fb) {
+    for (int i = 0; i < FB_BYTES; i++) fb->buf[i] ^= 0xFF;
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -29,6 +29,15 @@ static const char *WDAY3[] = { "SUN","MON","TUE","WED","THU","FRI","SAT" };
 
 // ── Render ────────────────────────────────────────────────────
 static void cal_render(fb_t *fb) {
+    // BUG-8: guard against un-synced NTP — show placeholder instead of stale date
+    if (!time_svc_is_synced()) {
+        fb_draw_str_centered(fb, 200,  10, "CALENDAR",       FB_BLACK);
+        fb_draw_hline(fb, 0, HDR_H, 400, FB_BLACK);
+        fb_draw_str_centered(fb, 200, 140, "WAITING FOR NTP", FB_BLACK);
+        fb_draw_str_centered(fb, 200, 154, "CONNECT WIFI TO SYNC", FB_BLACK);
+        return;
+    }
+
     // ── Header ──────────────────────────────────────────────
     char hdr[32];
     snprintf(hdr, sizeof(hdr), "%s %d", MONTH_NAMES[s_month], s_year);
@@ -62,53 +71,50 @@ static void cal_render(fb_t *fb) {
     int days_in_month = tm_next.tm_mday;
 
     // Today (for highlight)
-    int today_day = 0, today_month = -1, today_year = 0;
-    if (time_svc_is_synced()) {
-        time_t now = time_svc_get();
-        struct tm tnow; localtime_r(&now, &tnow);
-        today_day   = tnow.tm_mday;
-        today_month = tnow.tm_mon;
-        today_year  = 1900 + tnow.tm_year;
-    }
+    time_t now = time_svc_get();
+    struct tm tnow; localtime_r(&now, &tnow);
+    int today_day   = tnow.tm_mday;
+    int today_month = tnow.tm_mon;
+    int today_year  = 1900 + tnow.tm_year;
 
-    // Build cell array (prev month tail + this month + next month head)
+    // Build cell array
     int total_cells = first_wday + days_in_month;
-    int rows = (total_cells + 6) / 7;
+    int rows   = (total_cells + 6) / 7;
     int cell_h = GRID_H / rows;
+    int extra  = GRID_H % rows;   // BUG-9: remainder pixels given to last row
 
     int grid_top = HDR_H + STRIP_H;
-    int cell_num = 1 - first_wday;  // starts negative for prev-month cells
+    int cell_num = 1 - first_wday;
 
     for (int row = 0; row < rows; row++) {
+        // BUG-9: accumulate cy so last row absorbs remainder pixels
+        int this_h = (row == rows - 1) ? (cell_h + extra) : cell_h;
+        int cy = grid_top;
+        for (int r = 0; r < row; r++)
+            cy += (r == rows - 1) ? (cell_h + extra) : cell_h;
+
         for (int col = 0; col < 7; col++) {
             int cx = col * COL_W;
-            int cy = grid_top + row * cell_h;
             int cw = (col == 6) ? (400 - cx) : COL_W;
 
             // Cell border
-            fb_draw_rect(fb, cx, cy, cw, cell_h, FB_BLACK);
+            fb_draw_rect(fb, cx, cy, cw, this_h, FB_BLACK);
 
             int n = cell_num++;
             bool this_month = (n >= 1 && n <= days_in_month);
-            bool is_today   = this_month && n == today_day
-                              && s_month == today_month
-                              && s_year  == today_year;
+            if (!this_month) continue;   // skip adjacent-month cells
 
-            // Today: filled cell
-            if (is_today) {
-                fb_fill_rect(fb, cx + 1, cy + 1, cw - 2, cell_h - 2, FB_BLACK);
-            }
+            bool is_today = (n == today_day &&
+                             s_month == today_month &&
+                             s_year  == today_year);
 
-            // Day number
-            char num[24];
-            int display_n = n;
-            if (!this_month) {
-                // Trailing/leading day from adjacent month — skip rendering for clean look
-                continue;
-            }
-            snprintf(num, sizeof(num), "%d", display_n);
-            int tx = cx + cw/2 - (strlen(num) * 6) / 2;
-            int ty = cy + cell_h/2 - 4;
+            if (is_today)
+                fb_fill_rect(fb, cx + 1, cy + 1, cw - 2, this_h - 2, FB_BLACK);
+
+            char num[4];
+            snprintf(num, sizeof(num), "%d", n);
+            int tx = cx + cw/2 - ((int)strlen(num) * FONT_W) / 2;
+            int ty = cy + this_h/2 - FONT_H/2;
             fb_draw_str(fb, tx, ty, num, is_today ? FB_WHITE : FB_BLACK);
         }
     }

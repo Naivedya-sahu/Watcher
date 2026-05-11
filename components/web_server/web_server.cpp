@@ -58,6 +58,8 @@ int         pomo_get_session(void);
 bool time_svc_is_synced(void);   // returns true after first NTP sync
 
 static const char *TAG = "ws_srv";
+
+static uint32_t s_bitmap_rev = 0;  // incremented each EPD flush; webconsole polls for change
 static httpd_handle_t s_server = NULL;
 static fb_t          *s_fb     = NULL;
 static void (*cb_push_raw)(void) = NULL;
@@ -192,6 +194,9 @@ static char *build_state_json(void) {
     cJSON_AddNumberToObject(r, "break_m",  g_cfg.pomo_break_mins);
     cJSON_AddNumberToObject(r, "long_m",   g_cfg.pomo_long_mins);
     cJSON_AddNumberToObject(r, "cycles",   g_cfg.pomo_cycles);
+
+    // ── Bitmap revision — webconsole re-fetches /api/bitmap on change ─
+    cJSON_AddNumberToObject(r, "bitmap_rev", (double)s_bitmap_rev);
 
     char *s = cJSON_Print(r);
     cJSON_Delete(r);
@@ -682,3 +687,8 @@ void web_server_push_state(void) {
 }
 
 void web_server_poll(void) {}  // placeholder for future queued commands
+
+void web_server_bitmap_updated(void) {
+    s_bitmap_rev++;
+    web_server_push_state();   // push new bitmap_rev to all WS clients immediately
+}

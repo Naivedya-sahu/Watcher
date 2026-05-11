@@ -137,16 +137,22 @@ static void pomo_render(fb_t *fb) {
 }
 
 // ── Timer logic ───────────────────────────────────────────────
-static void pomo_tick(void) {
-    if (!s_running || s_paused) return;
+// Shared advance logic — called by both pomo_tick (active) and pomo_bg_tick (background).
+// Returns true if any state changed (caller decides whether to trigger render).
+static bool pomo_advance(void) {
+    if (!s_running || s_paused) return false;
     uint32_t now = (uint32_t)(esp_timer_get_time() / 1000);
-    if (s_last_ms == 0) { s_last_ms = now; return; }
-    if (now - s_last_ms >= 1000) {
-        s_last_ms += 1000;
-        screen_force_render();
-        if (s_remain > 0) {
-            s_remain--;
-        }
+    if (s_last_ms == 0) { s_last_ms = now; return false; }
+    uint32_t elapsed_ms = now - s_last_ms;
+    if (elapsed_ms < 1000) return false;
+    // Bulk-subtract all elapsed seconds at once — prevents fast-forward on re-entry
+    uint32_t elapsed_s = elapsed_ms / 1000;
+    s_last_ms += elapsed_s * 1000;
+    bool changed = false;
+    while (elapsed_s > 0 && s_running) {
+        elapsed_s--;
+        changed = true;
+        if (s_remain > 0) s_remain--;
         if (s_remain == 0) {
             s_running = false;
             buzzer_tone(BUZZ_POMO_DONE);
@@ -158,8 +164,23 @@ static void pomo_tick(void) {
                 g_cfg.pomo_long_mins) * 60;
             s_remain  = s_total;
             if (s_mode == MODE_FOCUS) s_session++;
-            screen_force_full();
+            pomo_screen.force_full = true;
         }
+    }
+    return changed;
+}
+
+// Called every tick when pomo is the active screen — advances timer + triggers render.
+static void pomo_tick(void) {
+    if (pomo_advance()) screen_force_render();
+}
+
+// Called every main loop iteration regardless of active screen — keeps timer alive.
+void pomo_bg_tick(void) {
+    if (!s_running || s_paused) return;
+    if (pomo_advance()) {
+        // Mark needs_render so screen_mgr picks it up when pomo becomes active.
+        pomo_screen.needs_render = true;
     }
 }
 
@@ -208,7 +229,13 @@ static void pomo_enc_click(void) { pomo_start_stop(); }
 
 static void pomo_enter(void) {
     build_seq();  // rebuild from g_cfg.pomo_cycles (may have changed via web/NVS)
-    s_total  = (uint32_t)g_cfg.pomo_focus_mins * 60;
+    // BUG-11: clamp seq_idx in case pomo_cycles was reduced while running
+    if (s_seq_idx >= s_seq_len) { s_seq_idx = 0; s_session = 1; }
+    // BUG-4: derive s_total from current mode, not always focus
+    s_total = (uint32_t)(
+        s_mode == MODE_FOCUS ? g_cfg.pomo_focus_mins :
+        s_mode == MODE_BREAK ? g_cfg.pomo_break_mins :
+        g_cfg.pomo_long_mins) * 60;
     if (!s_running) s_remain = s_total;
     screen_force_render();
 }

@@ -9,6 +9,10 @@ extern screen_def_t pomo_screen;
 void pomo_start_stop(void);
 void pomo_reset(void);
 
+// Background tick — call from main loop every iteration regardless of active screen.
+// Advances the timer state so pomo keeps counting when another screen is active.
+void pomo_bg_tick(void);
+
 // State queries (safe to call from any task/component)
 bool        pomo_is_running(void);
 uint32_t    pomo_get_remaining_s(void);   // seconds left in current interval

@@ -1,5 +1,7 @@
 #include "screen_mgr.h"
 #include "epd.h"
+#include "fb.h"
+#include "config_store.h"
 #include "esp_log.h"
 #include <string.h>
 
@@ -53,6 +55,7 @@ int screen_mgr_render(fb_t *fb) {
     int mode = sc->force_full ? EPD_FULL : EPD_PARTIAL;
     fb_clear(fb);
     if (sc->render) sc->render(fb);
+    if (g_cfg.theme_dark) fb_invert(fb);   // BUG-2: apply dark theme inversion post-render
     sc->needs_render = false;
     sc->force_full   = false;
     return mode;

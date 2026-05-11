@@ -472,6 +472,9 @@ const S = {
   // OTA file upload
   otaProgress: 0,
   otaInstalling: false,
+
+  // Bitmap revision counter — re-fetch EPD canvas only when this changes
+  bitmapRev: -1,
 };
 
 // ── UTILITIES ─────────────────────────────────────────────────────────────────
@@ -564,6 +567,10 @@ function applyState(d) {
   if (d.long_m      !== undefined) S.longMins        = d.long_m;
   if (d.cycles      !== undefined) S.cycles          = d.cycles;
   if (d.ota_url     !== undefined) S.otaUrl          = d.ota_url;
+  if (d.bitmap_rev  !== undefined && d.bitmap_rev !== S.bitmapRev) {
+    S.bitmapRev = d.bitmap_rev;
+    pollBitmap();   // re-fetch EPD canvas only when firmware signals a new flush
+  }
 }
 
 // ── CLOCK TICK (local) ────────────────────────────────────────────────────────
@@ -580,7 +587,8 @@ function startClock() {
 }
 
 // ── EPD BITMAP CANVAS ─────────────────────────────────────────────────────────
-let _bitmapInterval = null;
+// Bitmap is now event-driven: re-fetched when bitmap_rev changes in state JSON.
+// No fixed polling interval — eliminates redundant 15KB fetches every second.
 let _lastBitmapTs = 0;
 
 async function pollBitmap() {
@@ -615,8 +623,7 @@ async function pollBitmap() {
 }
 
 function startBitmapPoll() {
-  pollBitmap();
-  _bitmapInterval = setInterval(pollBitmap, 1000);
+  pollBitmap();   // initial fetch on connect; subsequent fetches triggered by bitmap_rev changes
 }
 
 // ── WEBSOCKET ─────────────────────────────────────────────────────────────────
@@ -640,13 +647,16 @@ function connectWs() {
   _ws.onmessage = (e) => {
     try {
       const m = JSON.parse(e.data);
-      if (m.type === 'state') {
+      // Server pushes raw state JSON (no type field). Log messages carry type:'log'.
+      if (m.type === 'log') {
+        addLog(m.tag || 'FW', m.msg || '');
+      } else {
+        // Treat any non-log message with a 'screen' field as a state update
         const prevScreen = S.activeScreen;
         applyState(m);
-        if (m.screen !== prevScreen) renderConfigPane();
+        if (m.screen !== undefined && m.screen !== prevScreen) renderConfigPane();
         renderAll();
       }
-      if (m.type === 'log') addLog(m.tag || 'FW', m.msg || '');
     } catch { /* ignore */ }
   };
 }
