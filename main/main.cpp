@@ -496,6 +496,7 @@ static void main_task(void *arg) {
 
         // ── 15-minute periodic full EPD refresh (ghost clearing) ──
         if (now > 0 && now - s_last_full_refresh >= 900) {
+            ESP_LOGI(TAG, "15-min full refresh (uptime %lus)", (unsigned long)now);
             screen_force_full();
             dirty = true;
         }
@@ -503,7 +504,10 @@ static void main_task(void *arg) {
         // ── Re-render if dirty ────────────────────────────────
         if (dirty) {
             int mode = screen_mgr_render(&s_fb);
-            if (mode == EPD_FULL) s_last_full_refresh = now;
+            if (mode == EPD_FULL) {
+                s_last_full_refresh = now;
+                ESP_LOGI(TAG, "EPD FULL refresh");
+            }
             web_server_push_state();
             do_flush(mode);
             web_server_bitmap_updated();

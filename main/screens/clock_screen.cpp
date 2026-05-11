@@ -126,8 +126,7 @@ static void clock_tick(void) {
     struct tm t; localtime_r(&now, &t);
     if (t.tm_sec != s_last_sec) {
         s_last_sec = t.tm_sec;
-        s_colon_on = (t.tm_sec & 1);
-        // full refresh on minute boundary removed — main loop 15-min wall-clock timer handles it
+        s_colon_on = true;   // static filled colon — no blink
         screen_force_render();
     }
 }

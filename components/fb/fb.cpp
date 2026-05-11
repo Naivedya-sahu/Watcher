@@ -217,27 +217,44 @@ static const uint16_t DOT_RING_Y[60] = {
     261,240,219,198,177,156,135,114,93,72,51,30
 };
 
+// Ring start offset — shifts index 0 to top-centre of the ring.
+// Index 9 in the original array is x=8+9*22=206, y=9 (nearest dot to horizontal centre).
+#define RING_START_OFFSET  9
+
 void fb_draw_dot_ring(fb_t *fb, int filled_count, int dot_color, int empty_color) {
     for (int i = 0; i < 60; i++) {
+        int idx   = (i + RING_START_OFFSET) % 60;
         int color = (i < filled_count) ? dot_color : empty_color;
-        if (color != -1) {
-            fb_fill_rect(fb, DOT_RING_X[i], DOT_RING_Y[i], 10, 10, color);
-        }
+        if (color != -1)
+            fb_fill_rect(fb, DOT_RING_X[idx], DOT_RING_Y[idx], 10, 10, color);
     }
 }
 
 void fb_draw_dot_ring_wave(fb_t *fb, int cycle) {
     // cycle = (min*60 + sec) % 120
-    // 0..59: emptying — indices 0..cycle are empty (outline), rest filled (solid)
-    // 60..119: filling  — indices 0..(cycle-60) are filled (solid), rest empty (outline)
-    bool emptying = (cycle < 60);
-    int  head     = emptying ? cycle : (cycle - 60);
+    // 0..59: emptying — filled count goes from 60 down to 0
+    // 60..119: filling — filled count goes from 0 up to 60
+    bool emptying    = (cycle < 60);
+    int  filled_count = emptying ? (60 - cycle) : (cycle - 60);
     for (int i = 0; i < 60; i++) {
-        bool filled = emptying ? (i > head) : (i <= head);
-        if (filled)
-            fb_fill_rect(fb, DOT_RING_X[i], DOT_RING_Y[i], 10, 10, FB_BLACK);
+        int idx = (i + RING_START_OFFSET) % 60;
+        if (i < filled_count)
+            fb_fill_rect(fb, DOT_RING_X[idx], DOT_RING_Y[idx], 10, 10, FB_BLACK);
         else
-            fb_draw_rect(fb, DOT_RING_X[i], DOT_RING_Y[i], 10, 10, FB_BLACK);
+            fb_draw_rect(fb, DOT_RING_X[idx], DOT_RING_Y[idx], 10, 10, FB_BLACK);
+    }
+}
+
+void fb_draw_dot_ring_progress(fb_t *fb, int filled_count) {
+    // filled_count 0..60: solid filled dots from top-centre, outline for remainder
+    if (filled_count < 0)  filled_count = 0;
+    if (filled_count > 60) filled_count = 60;
+    for (int i = 0; i < 60; i++) {
+        int idx = (i + RING_START_OFFSET) % 60;
+        if (i < filled_count)
+            fb_fill_rect(fb, DOT_RING_X[idx], DOT_RING_Y[idx], 10, 10, FB_BLACK);
+        else
+            fb_draw_rect(fb, DOT_RING_X[idx], DOT_RING_Y[idx], 10, 10, FB_BLACK);
     }
 }
 
