@@ -55,18 +55,23 @@ static int s_focus       = 0;
 #define RING_REPEAT_TICKS  150   // 3 s at 50 Hz
 #define RING_MAX_REPEATS     5   // auto-dismiss after 15 s
 
-static bool s_ringing    = false;
-static int  s_ring_tick  = 0;
-static int  s_ring_count = 0;
+static bool s_ringing       = false;
+static int  s_ring_tick     = 0;
+static int  s_ring_count    = 0;
 static char s_ring_label[16] = "";
+static int  s_last_alarm_min = -1;  // tracks last fired minute to avoid double-fire
 
 // ── Alarm check — call from main loop every second ────────────
 void alarm_check_now(void) {
     if (!time_svc_is_synced()) return;
     time_t t = time_svc_get();
     struct tm tm; localtime_r(&t, &tm);
-    if (tm.tm_sec != 0) return;            // only on minute boundary
+    // Allow sec 0 or 1 — EPD full refresh (1200ms) can cause main loop to skip sec=0.
+    // s_last_alarm_min prevents firing twice within the same minute.
+    if (tm.tm_sec > 1) return;
+    if (s_last_alarm_min == tm.tm_min) return;  // already fired this minute
     ESP_LOGD(TAG, "check %02d:%02d day=%d", tm.tm_hour, tm.tm_min, tm.tm_wday);
+    s_last_alarm_min = tm.tm_min;  // mark this minute as checked
     // tm_wday: 0=Sun,1=Mon..6=Sat → map to bit0=Mon..bit6=Sun
     int day_bit = (tm.tm_wday == 0) ? 6 : (tm.tm_wday - 1);
     for (int i = 0; i < s_alarm_count; i++) {
@@ -84,12 +89,13 @@ void alarm_check_now(void) {
             s_ring_label[sizeof(s_ring_label) - 1] = '\0';
             alarm_screen.needs_render = true;
             buzzer_tone(BUZZ_ALERT);
+            screen_goto("alarm");  // Mo-2: navigate to alarm screen so banner is visible
         }
     }
 }
 
-// ── Tick — called at 50 Hz when alarm screen is active ────────
-static void alarm_tick(void) {
+// ── Shared ring advance — called by both alarm_tick and alarm_bg_tick ─
+static void alarm_ring_advance(bool on_screen) {
     if (!s_ringing) return;
     s_ring_tick++;
     if (s_ring_tick % RING_REPEAT_TICKS == 0) {
@@ -101,9 +107,17 @@ static void alarm_tick(void) {
             ESP_LOGI(TAG, "repeat %d/%d", s_ring_count, RING_MAX_REPEATS);
             buzzer_tone(BUZZ_ALERT);
         }
-        screen_force_render();
+        if (on_screen) screen_force_render();
+        else           alarm_screen.needs_render = true;
     }
 }
+
+// ── Tick — called at 50 Hz when alarm screen is active ────────
+static void alarm_tick(void) { alarm_ring_advance(true); }
+
+// ── Background tick — called from main loop every iteration ───
+// Keeps ring + auto-dismiss alive regardless of active screen.
+void alarm_bg_tick(void) { alarm_ring_advance(false); }
 
 // ── Render ────────────────────────────────────────────────────
 static const char DAY_CHARS[] = "MTWTFSS";

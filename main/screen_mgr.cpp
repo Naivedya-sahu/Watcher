@@ -70,10 +70,12 @@ void screen_mgr_button(btn_id_t id, btn_evt_t evt) {
     if (sc && sc->on_button) sc->on_button(id, evt);
 }
 
+// Exposed so screen transitions can reset debounce (first input after nav isn't dropped).
+static uint32_t s_last_enc_ms = 0;
+
 void screen_mgr_encoder(int delta) {
     // Software debounce: ignore encoder events within 60ms of each other.
     // Prevents hardware-noise phantom rotations from changing selection.
-    static uint32_t s_last_enc_ms = 0;
     uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
     if (now_ms - s_last_enc_ms < 60) {
         ESP_LOGD(TAG, "[ENC] delta=%d debounced (gap=%lums)", delta,
@@ -100,6 +102,7 @@ void screen_goto(const char *id) {
             screen_def_t *old = active();
             if (old && old->exit) old->exit();
             s_active = i;
+            s_last_enc_ms = 0;  // reset debounce — first enc input after nav isn't dropped
             screen_def_t *sc = active();
             if (sc && sc->enter) sc->enter();
             if (sc) { sc->needs_render = true; sc->force_full = true; }
@@ -115,6 +118,7 @@ void screen_next(void) {
     screen_def_t *old = active();
     if (old && old->exit) old->exit();
     s_active = (s_active + 1) % s_count;
+    s_last_enc_ms = 0;
     screen_def_t *sc = active();
     if (sc && sc->enter) sc->enter();
     if (sc) { sc->needs_render = true; sc->force_full = true; }
@@ -126,6 +130,7 @@ void screen_prev(void) {
     screen_def_t *old = active();
     if (old && old->exit) old->exit();
     s_active = (s_active + s_count - 1) % s_count;
+    s_last_enc_ms = 0;
     screen_def_t *sc = active();
     if (sc && sc->enter) sc->enter();
     if (sc) { sc->needs_render = true; sc->force_full = true; }

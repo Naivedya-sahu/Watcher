@@ -225,7 +225,8 @@ static void tasks_enc_click(void) {
 static void tasks_enter(void) {
     tasks_load_from_spiffs();
     ESP_LOGI(TAG_T, "enter: %d tasks loaded", s_task_count);
-    s_scroll = 0;
+    // Don't reset s_scroll — tasks_set_json already clamped it; preserve position
+    if (s_scroll >= s_task_count) s_scroll = (s_task_count > 0) ? s_task_count - 1 : 0;
     screen_force_render();
 }
 

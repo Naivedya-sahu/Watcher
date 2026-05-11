@@ -27,6 +27,7 @@
 #include "screen_mgr.h"
 #include "screens/clock_screen.h"
 #include "screens/alarm_screen.h"
+// alarm_bg_tick declared in alarm_screen.h
 #include "screens/pomo_screen.h"
 #include "screens/cal_screen.h"
 #include "screens/tasks_screen.h"
@@ -133,9 +134,9 @@ static void serial_console_task(void *arg) {
             case 'n': screen_next();                       break;
             case 'p': screen_prev();                       break;
             case 'c': screen_goto("clock");                break;
-            case 'o': screen_goto("pomodoro");             break;
+            case 'o': screen_goto("pomo");                 break;
             case 'a': screen_goto("alarm");                break;
-            case 'k': screen_goto("calendar");             break;
+            case 'k': screen_goto("cal");                  break;
             case 't': screen_goto("tasks");                break;
             case 's': screen_goto("settings");             break;
 
@@ -488,8 +489,9 @@ static void main_task(void *arg) {
         encoder_poll();
     #endif
 
-        // ── Background pomo tick — keeps timer alive off-screen ──
+        // ── Background ticks — keep timers alive off-screen ──────
         pomo_bg_tick();
+        alarm_bg_tick();
 
         // ── Screen tick + dirty check ─────────────────────────
         bool dirty = screen_mgr_tick();
@@ -508,9 +510,8 @@ static void main_task(void *arg) {
                 s_last_full_refresh = now;
                 ESP_LOGI(TAG, "EPD FULL refresh");
             }
-            web_server_push_state();
             do_flush(mode);
-            web_server_bitmap_updated();
+            web_server_bitmap_updated();  // increments bitmap_rev + pushes state once
         }
 
         // ── Alarm check — once per real-time second ───────────
