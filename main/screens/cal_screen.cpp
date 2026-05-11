@@ -85,13 +85,10 @@ static void cal_render(fb_t *fb) {
 
     int grid_top = HDR_H + STRIP_H;
     int cell_num = 1 - first_wday;
+    int cy = grid_top;  // running y accumulator — avoids O(n²) inner loop
 
     for (int row = 0; row < rows; row++) {
-        // BUG-9: accumulate cy so last row absorbs remainder pixels
         int this_h = (row == rows - 1) ? (cell_h + extra) : cell_h;
-        int cy = grid_top;
-        for (int r = 0; r < row; r++)
-            cy += (r == rows - 1) ? (cell_h + extra) : cell_h;
 
         for (int col = 0; col < 7; col++) {
             int cx = col * COL_W;
@@ -117,6 +114,7 @@ static void cal_render(fb_t *fb) {
             int ty = cy + this_h/2 - FONT_H/2;
             fb_draw_str(fb, tx, ty, num, is_today ? FB_WHITE : FB_BLACK);
         }
+        cy += this_h;  // advance row top for next iteration
     }
 }
 

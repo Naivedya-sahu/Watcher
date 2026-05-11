@@ -200,6 +200,7 @@ static void settings_select(int row) {
 }
 
 static void settings_btn(btn_id_t id, btn_evt_t evt) {
+    if (id == BTN_1 && evt == BTN_LONG)  { screen_goto("clock"); return; }
     if (id == BTN_1 && evt == BTN_SHORT) {
         s_focus = (s_focus - 1 + MAX_ROWS) % MAX_ROWS;
         screen_force_render();

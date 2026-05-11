@@ -198,7 +198,7 @@ static char *build_state_json(void) {
     // ── Bitmap revision — webconsole re-fetches /api/bitmap on change ─
     cJSON_AddNumberToObject(r, "bitmap_rev", (double)s_bitmap_rev);
 
-    char *s = cJSON_Print(r);
+    char *s = cJSON_PrintUnformatted(r);
     cJSON_Delete(r);
     return s;
 }

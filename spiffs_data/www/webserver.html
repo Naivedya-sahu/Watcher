@@ -607,6 +607,16 @@ function startClock() {
     if (S.pomoRunning) {
       S.pomoRemainingS = Math.max(0, S.pomoRemainingS - 1);
       renderBottomBar();
+      // Update pomo config pane live fields without full pane rebuild
+      if (S.activeScreen === 'pomo') {
+        const total = (S.pomoMode==='FOCUS'?S.focusMins:S.pomoMode==='BREAK'?S.breakMins:S.longMins)*60;
+        const timeEl = document.querySelector('[data-pomo-live="time"]');
+        const barEl  = document.querySelector('[data-pomo-live="bar"]');
+        const barLbl = document.querySelector('[data-pomo-live="barlbl"]');
+        if (timeEl) timeEl.textContent = `${fmtPomoTime(S.pomoRemainingS)} / ${fmtPomoTime(total)}`;
+        if (barEl)  { const pct = total>0?Math.round((1-S.pomoRemainingS/total)*100):0; barEl.style.width=pct+'%'; }
+        if (barLbl) { const pct = total>0?Math.round((1-S.pomoRemainingS/total)*100):0; barLbl.textContent=`RUNNING · ${pct}%`; }
+      }
     }
     if (S.uptimeS) { S.uptimeS++; renderDeviceKv(); }
   }, 1000);
@@ -771,13 +781,23 @@ function htmlClockCfg() {
   </div>`;
 }
 
+const DAY_LABELS = ['M','T','W','T','F','S','S'];
+function alarmDayBits(days, i) {
+  return DAY_LABELS.map((d, b) => {
+    const on = (days >> b) & 1;
+    return `<button class="cfg-seg ${on?'active':''}" data-alarm-day="${i}" data-alarm-bit="${b}" title="${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][b]}">${d}</button>`;
+  }).join('');
+}
 function htmlAlarmCfg() {
   const rows = S.alarms.map((a, i) => `
-    <div class="cfg-item">
-      <input class="cfg-input cfg-input-time" type="time" value="${esc(a.time||'08:00')}" data-alarm-time="${i}">
-      <input class="cfg-input" type="text" value="${esc(a.label||'')}" data-alarm-label="${i}">
-      <button class="cfg-toggle ${a.on?'on':''}" data-alarm-toggle="${i}">${a.on?'ON':'OFF'}</button>
-      <button class="cfg-x" data-alarm-del="${i}">×</button>
+    <div class="cfg-item" style="flex-direction:column;gap:3px;">
+      <div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:4px;align-items:center;">
+        <input class="cfg-input cfg-input-time" type="time" value="${esc(a.time||'08:00')}" data-alarm-time="${i}">
+        <input class="cfg-input" type="text" value="${esc(a.label||'')}" data-alarm-label="${i}">
+        <button class="cfg-toggle ${a.on?'on':''}" data-alarm-toggle="${i}">${a.on?'ON':'OFF'}</button>
+        <button class="cfg-x" data-alarm-del="${i}">×</button>
+      </div>
+      <div class="cfg-segment" style="width:100%;">${alarmDayBits(typeof a.days==='number'?a.days:0x7F, i)}</div>
     </div>`).join('');
   return `<div class="cfg">
     <div class="cfg-list">${rows}</div>
@@ -800,8 +820,8 @@ function htmlPomoCfg() {
     ${cfgRow('CYCLES',`<div class="cfg-input-wrap"><input class="cfg-input" type="number" min="1" max="10"  value="${S.cycles}"    data-pomo="cycles"><span class="cfg-suffix">↻ LONG</span></div>`)}
     <div class="cfg-sub">LIVE SESSION</div>
     ${cfgRow('MODE',  `<span class="cfg-static">${esc(S.pomoMode)} · SESSION ${S.pomoSession}</span>`)}
-    ${cfgRow('TIME',  `<span class="cfg-static">${fmtPomoTime(S.pomoRemainingS)} / ${fmtPomoTime(total)}</span>`)}
-    ${S.pomoRunning ? `<div class="cfg-progress"><div class="cfg-progress-bar" style="width:${pct}%"></div><span class="cfg-progress-label">RUNNING · ${pct}%</span></div>` : ''}
+    ${cfgRow('TIME',  `<span class="cfg-static" data-pomo-live="time">${fmtPomoTime(S.pomoRemainingS)} / ${fmtPomoTime(total)}</span>`)}
+    ${S.pomoRunning ? `<div class="cfg-progress"><div class="cfg-progress-bar" data-pomo-live="bar" style="width:${pct}%"></div><span class="cfg-progress-label" data-pomo-live="barlbl">RUNNING · ${pct}%</span></div>` : ''}
     <div style="display:flex;gap:6px;margin-top:6px;">
       <button class="cfg-add" style="flex:1" id="pomo-toggle">${S.pomoRunning?'⏸ PAUSE':'▶ START'}</button>
       <button class="cfg-add" style="flex:1" id="pomo-reset">↺ RESET</button>
@@ -847,7 +867,7 @@ function htmlTasksCfg() {
       <button class="cfg-x" data-task-del="${i}">×</button>
     </div>`).join('');
   return `<div class="cfg">
-    <div class="cfg-info">TASKS STORED IN DEVICE NVS · SYNC VIA WEB CONSOLE</div>
+    <div class="cfg-info">TASKS STORED IN SPIFFS · SYNC VIA WEB CONSOLE</div>
     <div class="cfg-list">${rows}</div>
     <button class="cfg-add" id="task-add">+ ADD TASK</button>
     <div class="io-row">
@@ -1016,9 +1036,18 @@ document.addEventListener('click', async (e) => {
     await postAlarms();
     return;
   }
+  // Alarm: day-bit toggle
+  if (t.dataset.alarmDay !== undefined && t.dataset.alarmBit !== undefined) {
+    const i = parseInt(t.dataset.alarmDay);
+    const b = parseInt(t.dataset.alarmBit);
+    S.alarms[i].days = ((S.alarms[i].days || 0x7F) ^ (1 << b)) & 0x7F;
+    renderConfigPane();
+    await postAlarms();
+    return;
+  }
   // Alarm: add
   if (t.id === 'alarm-add') {
-    S.alarms.push({ time: '08:00', label: 'NEW', on: true });
+    S.alarms.push({ time: '08:00', label: 'NEW', on: true, days: 0x7F });
     renderConfigPane();
     await postAlarms();
     return;
@@ -1424,8 +1453,8 @@ async function init() {
   // Connect WebSocket
   connectWs();
 
-  // Periodic state poll (backup when WS dropped)
-  setInterval(pollState, 5000);
+  // Periodic state poll (backup when WS dropped — skip if WS is healthy)
+  setInterval(() => { if (S.conn !== 'connected') pollState(); }, 5000);
 
   // Heartbeat blink
   let hbTick = 0;
