@@ -470,11 +470,17 @@ static void main_task(void *arg) {
 
     // ─────────────────────────────────────────────────────────
     // Main loop — 50 Hz
-    // Order: poll input → tick screens → render if dirty → push WS state
+    // Order: poll WS → inputs → bg tasks → tick → render → poll WS
     // ─────────────────────────────────────────────────────────
-    static time_t s_last_sec = 0;
+    static time_t s_last_sec          = 0;
+    static time_t s_last_full_refresh = 0;
 
     while (true) {
+        time_t now = time(NULL);
+
+        // ── Web server — drain before tick so btn/enc land this frame ──
+        web_server_poll();
+
         // ── Input polling ─────────────────────────────────────
         // Poll only when inputs are enabled (otherwise serial console handles input)
     #if defined(ENABLE_INPUTS) && ENABLE_INPUTS
@@ -482,25 +488,32 @@ static void main_task(void *arg) {
         encoder_poll();
     #endif
 
+        // ── Background pomo tick — keeps timer alive off-screen ──
+        pomo_bg_tick();
+
         // ── Screen tick + dirty check ─────────────────────────
         bool dirty = screen_mgr_tick();
+
+        // ── 15-minute periodic full EPD refresh (ghost clearing) ──
+        if (now > 0 && now - s_last_full_refresh >= 900) {
+            screen_force_full();
+            dirty = true;
+        }
 
         // ── Re-render if dirty ────────────────────────────────
         if (dirty) {
             int mode = screen_mgr_render(&s_fb);
-            do_flush(mode);
+            if (mode == EPD_FULL) s_last_full_refresh = now;
             web_server_push_state();
+            do_flush(mode);
+            web_server_bitmap_updated();
         }
 
         // ── Alarm check — once per real-time second ───────────
-        time_t now = time(NULL);
         if (now != s_last_sec) {
             s_last_sec = now;
             alarm_check_now();
         }
-
-        // ── Web server command queue ──────────────────────────
-        web_server_poll();
 
         // ── WiFi AP fallback (set by event handler after max retries) ─
         // Must be handled from the main task, NOT from the WiFi callback.
@@ -509,6 +522,9 @@ static void main_task(void *arg) {
             wifi_switch_to_ap();
             web_server_push_state();  // update WS clients: ap_mode now true
         }
+
+        // ── Web server — drain after flush to minimise latency ───
+        web_server_poll();
 
         vTaskDelay(pdMS_TO_TICKS(20));  // 50 Hz
     }

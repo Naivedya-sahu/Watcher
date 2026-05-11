@@ -127,7 +127,7 @@ static void clock_tick(void) {
     if (t.tm_sec != s_last_sec) {
         s_last_sec = t.tm_sec;
         s_colon_on = (t.tm_sec & 1);
-        if (t.tm_sec == 0) screen_force_full();   // full refresh on minute boundary
+        // full refresh on minute boundary removed — main loop 15-min wall-clock timer handles it
         screen_force_render();
     }
 }

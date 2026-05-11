@@ -25,12 +25,13 @@ extern "C" {
 #define FONT_W  6   // Monocraft size-9 advance width (6x8 cell)
 #define FONT_H  8   // Monocraft glyph height
 
-// Partial refresh counter — after PARTIAL_LIMIT full refresh forced
-#define FB_PARTIAL_LIMIT  60
+// Partial refresh counter — after PARTIAL_LIMIT partial frames, full refresh forced.
+// 900 = 15 min at 1 fps. Belt-and-suspenders with the wall-clock 15-min timer in main.cpp.
+#define FB_PARTIAL_LIMIT  900
 
 typedef struct {
     uint8_t  buf[FB_BYTES];
-    uint8_t  partial_count;
+    uint16_t partial_count;   // was uint8_t (max 255); raised to hold 900
     bool     force_full_next;
 } fb_t;
 
@@ -95,6 +96,10 @@ void fb_draw_pause(fb_t *fb, int cx, int cy, int size, int color);
 
 // Stop square (■) — used for Pomodoro stop button
 void fb_draw_stop_sq(fb_t *fb, int cx, int cy, int size, int color);
+
+// Theme inversion — XOR every byte: white↔black.
+// Called by screen_mgr after render when g_cfg.theme_dark is set.
+void fb_invert(fb_t *fb);
 
 #ifdef __cplusplus
 }

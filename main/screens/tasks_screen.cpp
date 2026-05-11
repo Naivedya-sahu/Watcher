@@ -6,8 +6,42 @@
 #include "screen_mgr.h"
 #include "fb.h"
 #include "cJSON.h"
+#include "esp_log.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+
+#define TASKS_PATH "/spiffs/tasks.json"
+static const char *TAG_T = "tasks";
+
+static void tasks_save_to_spiffs(void) {
+    char *json = tasks_get_json();
+    if (!json) return;
+    FILE *f = fopen(TASKS_PATH, "w");
+    if (f) {
+        fputs(json, f);
+        fclose(f);
+    } else {
+        ESP_LOGW(TAG_T, "Cannot write %s", TASKS_PATH);
+    }
+    free(json);
+}
+
+static void tasks_load_from_spiffs(void) {
+    FILE *f = fopen(TASKS_PATH, "r");
+    if (!f) return;   // file absent — use compiled-in defaults
+    fseek(f, 0, SEEK_END);
+    long sz = ftell(f);
+    fseek(f, 0, SEEK_SET);
+    if (sz <= 0 || sz > 8192) { fclose(f); return; }
+    char *buf = (char *)malloc(sz + 1);
+    if (!buf) { fclose(f); return; }
+    fread(buf, 1, sz, f);
+    buf[sz] = '\0';
+    fclose(f);
+    tasks_set_json(buf);
+    free(buf);
+}
 
 #define MAX_TASKS 16
 #define VISIBLE    7
@@ -149,6 +183,7 @@ bool tasks_set_json(const char *json) {
     else if (s_task_count == 0)
         s_scroll = 0;
     cJSON_Delete(root);
+    tasks_save_to_spiffs();   // BUG-10: persist immediately after web push
     return true;
 }
 
@@ -159,6 +194,7 @@ static void tasks_btn(btn_id_t id, btn_evt_t evt) {
     if (id == BTN_3 && evt == BTN_SHORT) {
         if (s_task_count > 0) {
             s_tasks[s_scroll].done = !s_tasks[s_scroll].done;
+            tasks_save_to_spiffs();
             screen_force_render();
         }
     }
@@ -175,11 +211,16 @@ static void tasks_enc(int delta) {
 static void tasks_enc_click(void) {
     if (s_task_count > 0) {
         s_tasks[s_scroll].done = !s_tasks[s_scroll].done;
+        tasks_save_to_spiffs();
         screen_force_render();
     }
 }
 
-static void tasks_enter(void) { s_scroll = 0; screen_force_render(); }
+static void tasks_enter(void) {
+    tasks_load_from_spiffs();   // BUG-10: restore from SPIFFS (no-op if file absent)
+    s_scroll = 0;
+    screen_force_render();
+}
 
 screen_def_t tasks_screen = {
     .id           = "tasks",
